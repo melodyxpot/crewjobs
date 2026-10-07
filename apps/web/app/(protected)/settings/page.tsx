@@ -9,7 +9,9 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
 
   useEffect(() => {
-    apiGetSettings().then(({ settings }) => setSettings(settings)).catch(() => {})
+    apiGetSettings()
+      .then(({ settings }) => setSettings(settings))
+      .catch(() => {})
   }, [])
 
   return (

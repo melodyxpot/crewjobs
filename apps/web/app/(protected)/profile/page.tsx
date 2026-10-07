@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,17 +25,7 @@ import {
   apiParseResume,
 } from "@/lib/api"
 import { toast } from "sonner"
-import {
-  Loader2,
-  X,
-  Plus,
-  Upload,
-  FileText,
-  Download,
-  Trash2,
-  Sparkles,
-  Save,
-} from "lucide-react"
+import { Loader2, X, Plus, Upload, FileText, Download, Trash2, Sparkles, Save } from "lucide-react"
 
 interface Education {
   school: string
@@ -241,7 +237,7 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const { resumeFilename, ...data } = profile
+      const { resumeFilename: _resumeFilename, ...data } = profile
       await apiUpdateProfile(data)
       toast.success("Profile saved")
     } catch (err: any) {
@@ -333,7 +329,10 @@ export default function ProfilePage() {
   }
 
   const removeSkill = (skill: string) => {
-    updateField("skills", profile.skills.filter((s) => s !== skill))
+    updateField(
+      "skills",
+      profile.skills.filter((s) => s !== skill),
+    )
   }
 
   const addEducation = () => {
@@ -341,7 +340,10 @@ export default function ProfilePage() {
   }
 
   const removeEducation = (index: number) => {
-    updateField("education", profile.education.filter((_, i) => i !== index))
+    updateField(
+      "education",
+      profile.education.filter((_, i) => i !== index),
+    )
   }
 
   const updateEducation = (index: number, field: keyof Education, value: string) => {
@@ -355,7 +357,10 @@ export default function ProfilePage() {
   }
 
   const removeExperience = (index: number) => {
-    updateField("experience", profile.experience.filter((_, i) => i !== index))
+    updateField(
+      "experience",
+      profile.experience.filter((_, i) => i !== index),
+    )
   }
 
   const updateExperience = (index: number, field: keyof Experience, value: any) => {
@@ -369,7 +374,10 @@ export default function ProfilePage() {
   }
 
   const removeProject = (index: number) => {
-    updateField("projects", profile.projects.filter((_, i) => i !== index))
+    updateField(
+      "projects",
+      profile.projects.filter((_, i) => i !== index),
+    )
   }
 
   const updateProject = (index: number, field: keyof Project, value: string) => {
@@ -396,7 +404,11 @@ export default function ProfilePage() {
           </p>
         </div>
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {saving ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
           Save Profile
         </Button>
       </div>
@@ -467,7 +479,13 @@ export default function ProfilePage() {
                 <Download className="mr-1 h-4 w-4" />
                 Download
               </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={handleDeleteResume} className="text-destructive hover:text-destructive">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleDeleteResume}
+                className="text-destructive hover:text-destructive"
+              >
                 <Trash2 className="mr-1 h-4 w-4" />
                 Remove
               </Button>
@@ -643,13 +661,21 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {profile.education.length === 0 && (
-                <p className="text-sm text-muted-foreground">No education entries yet. Click &quot;Add Education&quot; to get started.</p>
+                <p className="text-sm text-muted-foreground">
+                  No education entries yet. Click &quot;Add Education&quot; to get started.
+                </p>
               )}
               {profile.education.map((edu, i) => (
                 <div key={i} className="space-y-4 rounded-lg border p-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium">Education {i + 1}</h4>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeEducation(i)} className="text-destructive hover:text-destructive">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeEducation(i)}
+                      className="text-destructive hover:text-destructive"
+                    >
                       <Trash2 className="mr-1 h-4 w-4" />
                       Remove
                     </Button>
@@ -657,32 +683,56 @@ export default function ProfilePage() {
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="grid gap-2">
                       <Label>School</Label>
-                      <Input value={edu.school} onChange={(e) => updateEducation(i, "school", e.target.value)} />
+                      <Input
+                        value={edu.school}
+                        onChange={(e) => updateEducation(i, "school", e.target.value)}
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Degree</Label>
-                      <Input value={edu.degree} onChange={(e) => updateEducation(i, "degree", e.target.value)} />
+                      <Input
+                        value={edu.degree}
+                        onChange={(e) => updateEducation(i, "degree", e.target.value)}
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Field of Study</Label>
-                      <Input value={edu.field} onChange={(e) => updateEducation(i, "field", e.target.value)} />
+                      <Input
+                        value={edu.field}
+                        onChange={(e) => updateEducation(i, "field", e.target.value)}
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Start Date</Label>
-                      <Input value={edu.startDate} onChange={(e) => updateEducation(i, "startDate", e.target.value)} placeholder="MM/YYYY" />
+                      <Input
+                        value={edu.startDate}
+                        onChange={(e) => updateEducation(i, "startDate", e.target.value)}
+                        placeholder="MM/YYYY"
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>End Date</Label>
-                      <Input value={edu.endDate} onChange={(e) => updateEducation(i, "endDate", e.target.value)} placeholder="MM/YYYY" />
+                      <Input
+                        value={edu.endDate}
+                        onChange={(e) => updateEducation(i, "endDate", e.target.value)}
+                        placeholder="MM/YYYY"
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>GPA</Label>
-                      <Input value={edu.gpa} onChange={(e) => updateEducation(i, "gpa", e.target.value)} />
+                      <Input
+                        value={edu.gpa}
+                        onChange={(e) => updateEducation(i, "gpa", e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="grid gap-2">
                     <Label>Description</Label>
-                    <Textarea value={edu.description} onChange={(e) => updateEducation(i, "description", e.target.value)} rows={2} />
+                    <Textarea
+                      value={edu.description}
+                      onChange={(e) => updateEducation(i, "description", e.target.value)}
+                      rows={2}
+                    />
                   </div>
                 </div>
               ))}
@@ -708,13 +758,21 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {profile.experience.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No experience entries yet. Click &quot;Add Experience&quot; to get started.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No experience entries yet. Click &quot;Add Experience&quot; to get started.
+                  </p>
                 )}
                 {profile.experience.map((exp, i) => (
                   <div key={i} className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-medium">Experience {i + 1}</h4>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => removeExperience(i)} className="text-destructive hover:text-destructive">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeExperience(i)}
+                        className="text-destructive hover:text-destructive"
+                      >
                         <Trash2 className="mr-1 h-4 w-4" />
                         Remove
                       </Button>
@@ -722,19 +780,32 @@ export default function ProfilePage() {
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       <div className="grid gap-2">
                         <Label>Company</Label>
-                        <Input value={exp.company} onChange={(e) => updateExperience(i, "company", e.target.value)} />
+                        <Input
+                          value={exp.company}
+                          onChange={(e) => updateExperience(i, "company", e.target.value)}
+                        />
                       </div>
                       <div className="grid gap-2">
                         <Label>Title</Label>
-                        <Input value={exp.title} onChange={(e) => updateExperience(i, "title", e.target.value)} />
+                        <Input
+                          value={exp.title}
+                          onChange={(e) => updateExperience(i, "title", e.target.value)}
+                        />
                       </div>
                       <div className="grid gap-2">
                         <Label>Location</Label>
-                        <Input value={exp.location} onChange={(e) => updateExperience(i, "location", e.target.value)} />
+                        <Input
+                          value={exp.location}
+                          onChange={(e) => updateExperience(i, "location", e.target.value)}
+                        />
                       </div>
                       <div className="grid gap-2">
                         <Label>Start Date</Label>
-                        <Input value={exp.startDate} onChange={(e) => updateExperience(i, "startDate", e.target.value)} placeholder="MM/YYYY" />
+                        <Input
+                          value={exp.startDate}
+                          onChange={(e) => updateExperience(i, "startDate", e.target.value)}
+                          placeholder="MM/YYYY"
+                        />
                       </div>
                       <div className="grid gap-2">
                         <Label>End Date</Label>
@@ -753,12 +824,18 @@ export default function ProfilePage() {
                           onChange={(e) => updateExperience(i, "current", e.target.checked)}
                           className="h-4 w-4 rounded border-gray-300"
                         />
-                        <Label htmlFor={`current-${i}`} className="cursor-pointer">Currently working here</Label>
+                        <Label htmlFor={`current-${i}`} className="cursor-pointer">
+                          Currently working here
+                        </Label>
                       </div>
                     </div>
                     <div className="grid gap-2">
                       <Label>Description</Label>
-                      <Textarea value={exp.description} onChange={(e) => updateExperience(i, "description", e.target.value)} rows={3} />
+                      <Textarea
+                        value={exp.description}
+                        onChange={(e) => updateExperience(i, "description", e.target.value)}
+                        rows={3}
+                      />
                     </div>
                   </div>
                 ))}
@@ -780,13 +857,21 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {profile.projects.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No projects yet. Click &quot;Add Project&quot; to get started.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No projects yet. Click &quot;Add Project&quot; to get started.
+                  </p>
                 )}
                 {profile.projects.map((proj, i) => (
                   <div key={i} className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-medium">Project {i + 1}</h4>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => removeProject(i)} className="text-destructive hover:text-destructive">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeProject(i)}
+                        className="text-destructive hover:text-destructive"
+                      >
                         <Trash2 className="mr-1 h-4 w-4" />
                         Remove
                       </Button>
@@ -794,20 +879,35 @@ export default function ProfilePage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="grid gap-2">
                         <Label>Project Name</Label>
-                        <Input value={proj.name} onChange={(e) => updateProject(i, "name", e.target.value)} />
+                        <Input
+                          value={proj.name}
+                          onChange={(e) => updateProject(i, "name", e.target.value)}
+                        />
                       </div>
                       <div className="grid gap-2">
                         <Label>URL</Label>
-                        <Input value={proj.url} onChange={(e) => updateProject(i, "url", e.target.value)} placeholder="https://..." />
+                        <Input
+                          value={proj.url}
+                          onChange={(e) => updateProject(i, "url", e.target.value)}
+                          placeholder="https://..."
+                        />
                       </div>
                     </div>
                     <div className="grid gap-2">
                       <Label>Technologies</Label>
-                      <Input value={proj.technologies} onChange={(e) => updateProject(i, "technologies", e.target.value)} placeholder="React, Node.js, ..." />
+                      <Input
+                        value={proj.technologies}
+                        onChange={(e) => updateProject(i, "technologies", e.target.value)}
+                        placeholder="React, Node.js, ..."
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Description</Label>
-                      <Textarea value={proj.description} onChange={(e) => updateProject(i, "description", e.target.value)} rows={2} />
+                      <Textarea
+                        value={proj.description}
+                        onChange={(e) => updateProject(i, "description", e.target.value)}
+                        rows={2}
+                      />
                     </div>
                   </div>
                 ))}
@@ -854,7 +954,13 @@ export default function ProfilePage() {
                   }}
                   className="max-w-xs"
                 />
-                <Button type="button" variant="outline" size="icon" onClick={addSkill} disabled={!newSkill.trim()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={addSkill}
+                  disabled={!newSkill.trim()}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -872,15 +978,60 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <EERow label="Are you authorized to work in the US?" value={profile.equalEmployment.authorizedToWork} onChange={(v) => updateEE("authorizedToWork", v)} options={YES_NO_OPTIONS} />
-              <EERow label="Do you have a disability?" value={profile.equalEmployment.disability} onChange={(v) => updateEE("disability", v)} options={YES_NO_OPTIONS} />
-              <EERow label="What is your gender?" value={profile.equalEmployment.gender} onChange={(v) => updateEE("gender", v)} options={GENDER_OPTIONS} />
-              <EERow label="Will you now or in the future require sponsorship for employment visa status?" value={profile.equalEmployment.requireSponsorship} onChange={(v) => updateEE("requireSponsorship", v)} options={YES_NO_OPTIONS} />
-              <EERow label="Do you identify as LGBTQ+?" value={profile.equalEmployment.lgbtq} onChange={(v) => updateEE("lgbtq", v)} options={YES_NO_OPTIONS} />
-              <EERow label="Are you a veteran?" value={profile.equalEmployment.veteran} onChange={(v) => updateEE("veteran", v)} options={YES_NO_OPTIONS} />
-              <EERow label="How would you identify your race?" value={profile.equalEmployment.race} onChange={(v) => updateEE("race", v)} options={RACE_OPTIONS} />
-              <EERow label="Are you Hispanic or Latino?" value={profile.equalEmployment.hispanicOrLatino} onChange={(v) => updateEE("hispanicOrLatino", v)} options={YES_NO_OPTIONS} />
-              <EERow label="How would you describe your sexual orientation?" value={profile.equalEmployment.sexualOrientation} onChange={(v) => updateEE("sexualOrientation", v)} options={ORIENTATION_OPTIONS} />
+              <EERow
+                label="Are you authorized to work in the US?"
+                value={profile.equalEmployment.authorizedToWork}
+                onChange={(v) => updateEE("authorizedToWork", v)}
+                options={YES_NO_OPTIONS}
+              />
+              <EERow
+                label="Do you have a disability?"
+                value={profile.equalEmployment.disability}
+                onChange={(v) => updateEE("disability", v)}
+                options={YES_NO_OPTIONS}
+              />
+              <EERow
+                label="What is your gender?"
+                value={profile.equalEmployment.gender}
+                onChange={(v) => updateEE("gender", v)}
+                options={GENDER_OPTIONS}
+              />
+              <EERow
+                label="Will you now or in the future require sponsorship for employment visa status?"
+                value={profile.equalEmployment.requireSponsorship}
+                onChange={(v) => updateEE("requireSponsorship", v)}
+                options={YES_NO_OPTIONS}
+              />
+              <EERow
+                label="Do you identify as LGBTQ+?"
+                value={profile.equalEmployment.lgbtq}
+                onChange={(v) => updateEE("lgbtq", v)}
+                options={YES_NO_OPTIONS}
+              />
+              <EERow
+                label="Are you a veteran?"
+                value={profile.equalEmployment.veteran}
+                onChange={(v) => updateEE("veteran", v)}
+                options={YES_NO_OPTIONS}
+              />
+              <EERow
+                label="How would you identify your race?"
+                value={profile.equalEmployment.race}
+                onChange={(v) => updateEE("race", v)}
+                options={RACE_OPTIONS}
+              />
+              <EERow
+                label="Are you Hispanic or Latino?"
+                value={profile.equalEmployment.hispanicOrLatino}
+                onChange={(v) => updateEE("hispanicOrLatino", v)}
+                options={YES_NO_OPTIONS}
+              />
+              <EERow
+                label="How would you describe your sexual orientation?"
+                value={profile.equalEmployment.sexualOrientation}
+                onChange={(v) => updateEE("sexualOrientation", v)}
+                options={ORIENTATION_OPTIONS}
+              />
             </CardContent>
           </Card>
         </TabsContent>

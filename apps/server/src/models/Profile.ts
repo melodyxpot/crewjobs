@@ -82,51 +82,66 @@ export interface IProfile extends Document {
   updatedAt: Date
 }
 
-const educationSchema = new Schema<IEducation>({
-  school: { type: String, default: "" },
-  degree: { type: String, default: "" },
-  field: { type: String, default: "" },
-  startDate: { type: String, default: "" },
-  endDate: { type: String, default: "" },
-  gpa: { type: String },
-  description: { type: String },
-}, { _id: true })
+const educationSchema = new Schema<IEducation>(
+  {
+    school: { type: String, default: "" },
+    degree: { type: String, default: "" },
+    field: { type: String, default: "" },
+    startDate: { type: String, default: "" },
+    endDate: { type: String, default: "" },
+    gpa: { type: String },
+    description: { type: String },
+  },
+  { _id: true },
+)
 
-const experienceSchema = new Schema<IExperience>({
-  company: { type: String, default: "" },
-  title: { type: String, default: "" },
-  location: { type: String },
-  startDate: { type: String, default: "" },
-  endDate: { type: String, default: "" },
-  current: { type: Boolean, default: false },
-  description: { type: String },
-}, { _id: true })
+const experienceSchema = new Schema<IExperience>(
+  {
+    company: { type: String, default: "" },
+    title: { type: String, default: "" },
+    location: { type: String },
+    startDate: { type: String, default: "" },
+    endDate: { type: String, default: "" },
+    current: { type: Boolean, default: false },
+    description: { type: String },
+  },
+  { _id: true },
+)
 
-const projectSchema = new Schema<IProject>({
-  name: { type: String, default: "" },
-  url: { type: String },
-  description: { type: String },
-  technologies: { type: String },
-}, { _id: true })
+const projectSchema = new Schema<IProject>(
+  {
+    name: { type: String, default: "" },
+    url: { type: String },
+    description: { type: String },
+    technologies: { type: String },
+  },
+  { _id: true },
+)
 
-const generatedResumeSchema = new Schema<IGeneratedResume>({
-  jobTitle: { type: String, default: "" },
-  company: { type: String, default: "" },
-  url: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-}, { _id: true })
+const generatedResumeSchema = new Schema<IGeneratedResume>(
+  {
+    jobTitle: { type: String, default: "" },
+    company: { type: String, default: "" },
+    url: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: true },
+)
 
-const equalEmploymentSchema = new Schema<IEqualEmployment>({
-  authorizedToWork: { type: String, default: "" },
-  disability: { type: String, default: "" },
-  gender: { type: String, default: "" },
-  requireSponsorship: { type: String, default: "" },
-  lgbtq: { type: String, default: "" },
-  veteran: { type: String, default: "" },
-  race: { type: String, default: "" },
-  hispanicOrLatino: { type: String, default: "" },
-  sexualOrientation: { type: String, default: "" },
-}, { _id: false })
+const equalEmploymentSchema = new Schema<IEqualEmployment>(
+  {
+    authorizedToWork: { type: String, default: "" },
+    disability: { type: String, default: "" },
+    gender: { type: String, default: "" },
+    requireSponsorship: { type: String, default: "" },
+    lgbtq: { type: String, default: "" },
+    veteran: { type: String, default: "" },
+    race: { type: String, default: "" },
+    hispanicOrLatino: { type: String, default: "" },
+    sexualOrientation: { type: String, default: "" },
+  },
+  { _id: false },
+)
 
 const profileSchema = new Schema<IProfile>(
   {
@@ -154,7 +169,7 @@ const profileSchema = new Schema<IProfile>(
     generatedResumes: { type: [generatedResumeSchema], default: [] },
     equalEmployment: { type: equalEmploymentSchema, default: () => ({}) },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 export const Profile = mongoose.model<IProfile>("Profile", profileSchema)

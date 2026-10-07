@@ -110,7 +110,11 @@ export async function getResumeInfo() {
   return res.json()
 }
 
-export async function generateResume(data: { jobTitle: string; company: string; jobDescription: string }) {
+export async function generateResume(data: {
+  jobTitle: string
+  company: string
+  jobDescription: string
+}) {
   const res = await authFetch(`${API_BASE}/profile/generate-resume`, {
     method: "POST",
     body: JSON.stringify(data),
@@ -120,7 +124,9 @@ export async function generateResume(data: { jobTitle: string; company: string; 
   return result
 }
 
-export async function detectFieldsWithAI(fields: { label: string; type: string; name: string; id: string }[]) {
+export async function detectFieldsWithAI(
+  fields: { label: string; type: string; name: string; id: string }[],
+) {
   const res = await authFetch(`${API_BASE}/profile/detect-fields`, {
     method: "POST",
     body: JSON.stringify({ fields }),
@@ -130,7 +136,12 @@ export async function detectFieldsWithAI(fields: { label: string; type: string; 
   return result
 }
 
-export async function generateAnswer(data: { question: string; jobTitle: string; company: string; jobDescription: string }) {
+export async function generateAnswer(data: {
+  question: string
+  jobTitle: string
+  company: string
+  jobDescription: string
+}) {
   const res = await authFetch(`${API_BASE}/profile/generate-answer`, {
     method: "POST",
     body: JSON.stringify(data),
@@ -154,7 +165,11 @@ export async function setExtensionSettings(settings: ExtSettings): Promise<void>
   await setStorageData("crewjobs_ext_settings", settings)
 }
 
-export async function generateCoverLetter(data: { jobTitle: string; company: string; jobDescription: string }) {
+export async function generateCoverLetter(data: {
+  jobTitle: string
+  company: string
+  jobDescription: string
+}) {
   const res = await authFetch(`${API_BASE}/profile/generate-cover-letter`, {
     method: "POST",
     body: JSON.stringify(data),

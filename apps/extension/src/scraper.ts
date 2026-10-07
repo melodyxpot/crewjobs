@@ -42,7 +42,8 @@ function detectWorkLocation(text: string): string {
   const lower = text.toLowerCase()
   if (lower.includes("remote")) return "Remote"
   if (lower.includes("hybrid")) return "Hybrid"
-  if (lower.includes("on-site") || lower.includes("onsite") || lower.includes("in-office")) return "Onsite"
+  if (lower.includes("on-site") || lower.includes("onsite") || lower.includes("in-office"))
+    return "Onsite"
   return ""
 }
 
@@ -78,7 +79,7 @@ export function scrapeJobData(): ScrapedJob {
   title = title.split(" | ")[0].split(" - ")[0].trim()
 
   // Try to get company
-  let company =
+  const company =
     getTextBySelectors([
       ".topcard__org-name-link",
       "a.topcard__org-name-link",

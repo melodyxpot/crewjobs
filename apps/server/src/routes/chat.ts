@@ -35,27 +35,31 @@ router.get("/inbox", async (req: AuthRequest, res) => {
 
     const byOther = new Map<string, any>()
     for (const conversation of conversations) {
-      const other = conversation.participants.map((id) => id.toString()).find((id) => id !== req.userId)
+      const other = conversation.participants
+        .map((id) => id.toString())
+        .find((id) => id !== req.userId)
       if (other) byOther.set(other, conversation)
     }
 
     res.json({
-      contacts: contacts.map((user) => {
-        const conversation = byOther.get(user._id.toString())
-        return {
-          ...toPublicUser(user),
-          displayName: displayName(user),
-          conversationId: conversation?._id || null,
-          lastMessage: conversation?.lastMessage || "",
-          lastMessageAt: conversation?.lastMessageAt || null,
-          lastSenderId: conversation?.lastSenderId || null,
-        }
-      }).sort((a, b) => {
-        const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0
-        const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0
-        if (aTime !== bTime) return bTime - aTime
-        return a.displayName.localeCompare(b.displayName)
-      }),
+      contacts: contacts
+        .map((user) => {
+          const conversation = byOther.get(user._id.toString())
+          return {
+            ...toPublicUser(user),
+            displayName: displayName(user),
+            conversationId: conversation?._id || null,
+            lastMessage: conversation?.lastMessage || "",
+            lastMessageAt: conversation?.lastMessageAt || null,
+            lastSenderId: conversation?.lastSenderId || null,
+          }
+        })
+        .sort((a, b) => {
+          const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0
+          const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0
+          if (aTime !== bTime) return bTime - aTime
+          return a.displayName.localeCompare(b.displayName)
+        }),
       reachableIds: contactIds.map((id) => id.toString()),
     })
   } catch (error) {
@@ -67,7 +71,8 @@ router.get("/inbox", async (req: AuthRequest, res) => {
 router.get("/messages/:userId", async (req: AuthRequest, res) => {
   try {
     const other = await User.findById(req.params.userId).select("-password")
-    if (!other || other.status !== "approved") return res.status(404).json({ error: "User not found" })
+    if (!other || other.status !== "approved")
+      return res.status(404).json({ error: "User not found" })
     if (!canChatWith(req.user!, other)) {
       return res.status(403).json({ error: "You cannot message this user" })
     }
@@ -104,7 +109,8 @@ router.post("/messages/:userId", async (req: AuthRequest, res) => {
     if (body.length > 4000) return res.status(400).json({ error: "Message is too long" })
 
     const other = await User.findById(req.params.userId).select("-password")
-    if (!other || other.status !== "approved") return res.status(404).json({ error: "User not found" })
+    if (!other || other.status !== "approved")
+      return res.status(404).json({ error: "User not found" })
     if (!canChatWith(req.user!, other)) {
       return res.status(403).json({ error: "You cannot message this user" })
     }

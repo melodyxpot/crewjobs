@@ -16,7 +16,7 @@ const workspaceSchema = new Schema<IWorkspace>(
     bidderIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
     callerIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 workspaceSchema.index({ bidderIds: 1 })

@@ -23,10 +23,13 @@ function duplicateKey(error: unknown) {
   return typeof error === "object" && error !== null && (error as { code?: number }).code === 11000
 }
 
-function listingIdentity(link: string | null, workspaceId: mongoose.Types.ObjectId | string | null, company: string, title: string) {
-  return link
-    ? { link, workspaceId }
-    : { company, title, workspaceId, link: null }
+function listingIdentity(
+  link: string | null,
+  workspaceId: mongoose.Types.ObjectId | string | null,
+  company: string,
+  title: string,
+) {
+  return link ? { link, workspaceId } : { company, title, workspaceId, link: null }
 }
 
 function applyListing(existing: IScrapedJob, input: RemoteListingInput, link: string | null) {
@@ -39,9 +42,8 @@ function applyListing(existing: IScrapedJob, input: RemoteListingInput, link: st
   if (input.notes) existing.notes = input.notes
   existing.link = link
 
-  const nextAssignee = input.mode === "bid"
-    ? { id: input.userId, name: input.bidderName }
-    : input.assignee || null
+  const nextAssignee =
+    input.mode === "bid" ? { id: input.userId, name: input.bidderName } : input.assignee || null
   if (!nextAssignee) return
 
   const assigneeId = existing.assignedTo?.toString()
@@ -58,7 +60,9 @@ function applyListing(existing: IScrapedJob, input: RemoteListingInput, link: st
   }
 }
 
-export async function saveRemoteListing(input: RemoteListingInput): Promise<{ job: IScrapedJob; created: boolean }> {
+export async function saveRemoteListing(
+  input: RemoteListingInput,
+): Promise<{ job: IScrapedJob; created: boolean }> {
   const link = typeof input.link === "string" && input.link.trim() ? input.link.trim() : null
   const workspaceId = input.workspaceId || null
   const identity = listingIdentity(link, workspaceId, input.company, input.title)
@@ -79,9 +83,8 @@ export async function saveRemoteListing(input: RemoteListingInput): Promise<{ jo
     }
   }
 
-  const assignee = input.mode === "bid"
-    ? { id: input.userId, name: input.bidderName }
-    : input.assignee || null
+  const assignee =
+    input.mode === "bid" ? { id: input.userId, name: input.bidderName } : input.assignee || null
 
   try {
     const job = await ScrapedJob.create({

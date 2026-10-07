@@ -10,11 +10,16 @@ export interface IMessage extends Document {
 
 const messageSchema = new Schema<IMessage>(
   {
-    conversationId: { type: Schema.Types.ObjectId, ref: "Conversation", required: true, index: true },
+    conversationId: {
+      type: Schema.Types.ObjectId,
+      ref: "Conversation",
+      required: true,
+      index: true,
+    },
     senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     body: { type: String, required: true, maxlength: 4000 },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 messageSchema.index({ conversationId: 1, createdAt: 1 })

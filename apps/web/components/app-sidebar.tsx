@@ -2,7 +2,21 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Briefcase, LayoutDashboard, FileText, Settings, LogOut, Plus, ClipboardPaste, User, Users, MessagesSquare, Building2, Globe, UserCheck } from "lucide-react"
+import {
+  Briefcase,
+  LayoutDashboard,
+  FileText,
+  Settings,
+  LogOut,
+  Plus,
+  ClipboardPaste,
+  User,
+  Users,
+  MessagesSquare,
+  Building2,
+  Globe,
+  UserCheck,
+} from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -111,7 +125,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <span className="ml-2 min-w-0 text-left">
                 <span className="block truncate text-sm">{user.username || user.email}</span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {user.isSuperAdmin ? "Superadmin" : ROLE_LABELS[user.role] || user.role || "Member"}
+                  {user.isSuperAdmin
+                    ? "Superadmin"
+                    : ROLE_LABELS[user.role] || user.role || "Member"}
                 </span>
               </span>
             </Button>

@@ -28,13 +28,23 @@ async function visibleJobFilter(req: AuthRequest) {
 
 router.get("/", async (req: AuthRequest, res) => {
   try {
-    const { page = "1", pageSize = "20", search, workspaceId, assignedTo, status } = req.query as Record<string, string>
+    const {
+      page = "1",
+      pageSize = "20",
+      search,
+      workspaceId,
+      assignedTo,
+      status,
+    } = req.query as Record<string, string>
     const filter: any = await visibleJobFilter(req)
 
     if (workspaceId && workspaceId !== "all") {
       const workspaces = await workspacesForUser(req.user!)
-      const allowed = isManager(req.user!) || req.user!.role === "finance" || req.user!.role === "developer"
-        || workspaces.some((workspace) => workspace._id.toString() === workspaceId)
+      const allowed =
+        isManager(req.user!) ||
+        req.user!.role === "finance" ||
+        req.user!.role === "developer" ||
+        workspaces.some((workspace) => workspace._id.toString() === workspaceId)
       if (!allowed) return res.status(403).json({ error: "You cannot view that workspace" })
       filter.workspaceId = workspaceId
       delete filter.$or
@@ -87,7 +97,8 @@ router.get("/", async (req: AuthRequest, res) => {
 
 router.post("/", async (req: AuthRequest, res) => {
   try {
-    const { title, company, link, platform, location, workLocation, jobType, notes, assignedTo } = req.body
+    const { title, company, link, platform, location, workLocation, jobType, notes, assignedTo } =
+      req.body
     if (!title?.trim() || !company?.trim()) {
       return res.status(400).json({ error: "Company and job title are required" })
     }
@@ -107,10 +118,13 @@ router.post("/", async (req: AuthRequest, res) => {
         return res.status(403).json({ error: "Only a leader or moderator can assign jobs" })
       }
       const bidder = await User.findOne({ _id: assignedTo, role: "bidder", status: "approved" })
-      if (!bidder) return res.status(400).json({ error: "Jobs can only be assigned to an approved bidder" })
+      if (!bidder)
+        return res.status(400).json({ error: "Jobs can only be assigned to an approved bidder" })
       if (resolved.workspaceId) {
         const workspace = await Workspace.findById(resolved.workspaceId)
-        const inWorkspace = workspace?.bidderIds.some((id) => id.toString() === bidder._id.toString())
+        const inWorkspace = workspace?.bidderIds.some(
+          (id) => id.toString() === bidder._id.toString(),
+        )
         if (!inWorkspace) {
           return res.status(400).json({ error: "That bidder is not assigned to this workspace" })
         }
@@ -145,7 +159,9 @@ router.post("/", async (req: AuthRequest, res) => {
 router.patch("/:id", async (req: AuthRequest, res) => {
   try {
     if (!isManager(req.user!)) {
-      return res.status(403).json({ error: "Only a leader or moderator can update job assignments" })
+      return res
+        .status(403)
+        .json({ error: "Only a leader or moderator can update job assignments" })
     }
     const job = await ScrapedJob.findById(req.params.id)
     if (!job) return res.status(404).json({ error: "Job not found" })
@@ -168,11 +184,18 @@ router.patch("/:id", async (req: AuthRequest, res) => {
         job.assignedName = null
         if (job.status !== "applied") job.status = "open"
       } else {
-        const bidder = await User.findOne({ _id: req.body.assignedTo, role: "bidder", status: "approved" })
-        if (!bidder) return res.status(400).json({ error: "Jobs can only be assigned to an approved bidder" })
+        const bidder = await User.findOne({
+          _id: req.body.assignedTo,
+          role: "bidder",
+          status: "approved",
+        })
+        if (!bidder)
+          return res.status(400).json({ error: "Jobs can only be assigned to an approved bidder" })
         if (job.workspaceId) {
           const workspace = await Workspace.findById(job.workspaceId)
-          const inWorkspace = workspace?.bidderIds.some((id) => id.toString() === bidder._id.toString())
+          const inWorkspace = workspace?.bidderIds.some(
+            (id) => id.toString() === bidder._id.toString(),
+          )
           if (!inWorkspace) {
             return res.status(400).json({ error: "That bidder is not assigned to this workspace" })
           }

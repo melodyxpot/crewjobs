@@ -38,10 +38,13 @@ const jobApplicationSchema = new Schema<IJobApplication>(
     workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", default: null, index: true },
     bidderName: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 jobApplicationSchema.index({ userId: 1, appliedAt: -1 })
 jobApplicationSchema.index({ userId: 1, status: 1 })
 
-export const JobApplication = mongoose.model<IJobApplication>("JobApplication", jobApplicationSchema)
+export const JobApplication = mongoose.model<IJobApplication>(
+  "JobApplication",
+  jobApplicationSchema,
+)

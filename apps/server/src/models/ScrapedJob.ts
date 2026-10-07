@@ -36,7 +36,7 @@ const scrapedJobSchema = new Schema<IScrapedJob>(
     status: { type: String, enum: ["open", "assigned", "applied"], default: "open" },
     scrapedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 scrapedJobSchema.index(
@@ -45,7 +45,7 @@ scrapedJobSchema.index(
     unique: true,
     partialFilterExpression: { link: { $type: "string" } },
     name: "scraped_job_link_workspace_unique",
-  }
+  },
 )
 scrapedJobSchema.index({ company: 1, title: 1, workspaceId: 1 })
 

@@ -1,6 +1,29 @@
 import { scrapeJobData } from "./scraper"
-import { detectFormFields, getProfileValue, fillField, attachFileToInput, DetectedField } from "./detector"
-import { login, logout, createApplication, saveScrapedJob, getWorkspaces, isLoggedIn, getUser, getSettings, getProfile, getResumeInfo, generateResume, generateAnswer, getExtensionSettings, setExtensionSettings, generateCoverLetter, ExtSettings } from "./api"
+import {
+  detectFormFields,
+  getProfileValue,
+  fillField,
+  attachFileToInput,
+  DetectedField,
+} from "./detector"
+import {
+  login,
+  logout,
+  createApplication,
+  saveScrapedJob,
+  getWorkspaces,
+  isLoggedIn,
+  getUser,
+  getSettings,
+  getProfile,
+  getResumeInfo,
+  generateResume,
+  generateAnswer,
+  getExtensionSettings,
+  setExtensionSettings,
+  generateCoverLetter,
+  ExtSettings,
+} from "./api"
 import { jsPDF } from "jspdf"
 
 let sidebarRoot: HTMLElement | null = null
@@ -157,7 +180,9 @@ async function renderMain(user: any) {
   followUpDate.setDate(followUpDate.getDate() + (settings?.followUpOffsetDays || 7))
   const followUp = followUpDate.toISOString().split("T")[0]
   const hasScraped = !!(scraped.title || scraped.company)
-  const canPickWorkspace = !!user?.isSuperAdmin || ["leader", "moderator", "caller", "finance", "developer"].includes(user?.role)
+  const canPickWorkspace =
+    !!user?.isSuperAdmin ||
+    ["leader", "moderator", "caller", "finance", "developer"].includes(user?.role)
   let workspaces: { _id: string; name: string }[] = []
   if (canPickWorkspace) {
     try {
@@ -213,7 +238,7 @@ async function renderMain(user: any) {
       </div>
       
       <div class="crewjobs-body" id="crewjobs-tab-save" style="display:none">
-        ${hasScraped ? '<div class="crewjobs-scraped-bar">Scraped from page <span class="crewjobs-scraped-badge">Auto-detected</span></div>' : ''}
+        ${hasScraped ? '<div class="crewjobs-scraped-bar">Scraped from page <span class="crewjobs-scraped-badge">Auto-detected</span></div>' : ""}
         <div id="crewjobs-message-area"></div>
         
         <div class="crewjobs-form-group">
@@ -305,12 +330,12 @@ async function renderMain(user: any) {
   // Tab switching
   const tabs = sidebarRoot.querySelectorAll(".crewjobs-tab")
   const allTabPanels = ["#crewjobs-tab-autofill", "#crewjobs-tab-save", "#crewjobs-tab-settings"]
-  tabs.forEach(tab => {
+  tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
-      tabs.forEach(t => t.classList.remove("crewjobs-tab-active"))
+      tabs.forEach((t) => t.classList.remove("crewjobs-tab-active"))
       tab.classList.add("crewjobs-tab-active")
       const tabName = tab.getAttribute("data-tab")
-      allTabPanels.forEach(id => {
+      allTabPanels.forEach((id) => {
         const panel = sidebarRoot!.querySelector(id) as HTMLElement
         if (panel) panel.style.display = id === `#crewjobs-tab-${tabName}` ? "" : "none"
       })
@@ -326,7 +351,9 @@ async function renderMain(user: any) {
       refreshAutofillSection()
     })
   }
-  const saveResumeToggle = sidebarRoot.querySelector("#crewjobs-setting-save-resume") as HTMLInputElement
+  const saveResumeToggle = sidebarRoot.querySelector(
+    "#crewjobs-setting-save-resume",
+  ) as HTMLInputElement
   if (saveResumeToggle) {
     saveResumeToggle.addEventListener("change", async () => {
       extSettings.saveResumeInApp = saveResumeToggle.checked
@@ -350,7 +377,8 @@ async function renderMain(user: any) {
 
     btn.disabled = true
     btn.textContent = "Generating..."
-    resultDiv.innerHTML = '<div style="font-size:11px;color:#888;margin-top:8px">⏳ AI is generating your custom resume...</div>'
+    resultDiv.innerHTML =
+      '<div style="font-size:11px;color:#888;margin-top:8px">⏳ AI is generating your custom resume...</div>'
 
     try {
       const scraped = scrapeJobData()
@@ -381,25 +409,28 @@ async function renderMain(user: any) {
   })
 
   // Generate cover letter
-  sidebarRoot.querySelector("#crewjobs-generate-cover-letter")?.addEventListener("click", async () => {
-    const btn = sidebarRoot!.querySelector("#crewjobs-generate-cover-letter") as HTMLButtonElement
-    const resultDiv = sidebarRoot!.querySelector("#crewjobs-cover-letter-result") as HTMLElement
+  sidebarRoot
+    .querySelector("#crewjobs-generate-cover-letter")
+    ?.addEventListener("click", async () => {
+      const btn = sidebarRoot!.querySelector("#crewjobs-generate-cover-letter") as HTMLButtonElement
+      const resultDiv = sidebarRoot!.querySelector("#crewjobs-cover-letter-result") as HTMLElement
 
-    btn.disabled = true
-    btn.textContent = "Generating..."
-    resultDiv.innerHTML = '<div style="font-size:11px;color:#888;margin-top:8px">⏳ AI is writing your cover letter...</div>'
+      btn.disabled = true
+      btn.textContent = "Generating..."
+      resultDiv.innerHTML =
+        '<div style="font-size:11px;color:#888;margin-top:8px">⏳ AI is writing your cover letter...</div>'
 
-    try {
-      const scraped = scrapeJobData()
-      const jobDescription = document.body.innerText.substring(0, 12000)
+      try {
+        const scraped = scrapeJobData()
+        const jobDescription = document.body.innerText.substring(0, 12000)
 
-      const result = await generateCoverLetter({
-        jobTitle: scraped.title,
-        company: scraped.company,
-        jobDescription,
-      })
+        const result = await generateCoverLetter({
+          jobTitle: scraped.title,
+          company: scraped.company,
+          jobDescription,
+        })
 
-      resultDiv.innerHTML = `
+        resultDiv.innerHTML = `
         <div class="crewjobs-message crewjobs-message-success" style="margin-top:8px">
           ✓ Cover letter generated!
           <div style="margin-top:8px;padding:10px;background:#f9fafb;border:1px solid #e5e5e5;border-radius:6px;font-size:12px;line-height:1.6;color:#333;max-height:200px;overflow-y:auto;white-space:pre-wrap">${escapeHtml(result.coverLetter)}</div>
@@ -410,69 +441,81 @@ async function renderMain(user: any) {
         </div>
       `
 
-      sidebarRoot!.querySelector("#crewjobs-copy-cover-letter")?.addEventListener("click", () => {
-        navigator.clipboard.writeText(result.coverLetter)
-        const copyBtn = sidebarRoot!.querySelector("#crewjobs-copy-cover-letter") as HTMLButtonElement
-        copyBtn.textContent = "✓ Copied!"
-        setTimeout(() => { copyBtn.textContent = "📋 Copy to Clipboard" }, 2000)
-      })
+        sidebarRoot!.querySelector("#crewjobs-copy-cover-letter")?.addEventListener("click", () => {
+          navigator.clipboard.writeText(result.coverLetter)
+          const copyBtn = sidebarRoot!.querySelector(
+            "#crewjobs-copy-cover-letter",
+          ) as HTMLButtonElement
+          copyBtn.textContent = "✓ Copied!"
+          setTimeout(() => {
+            copyBtn.textContent = "📋 Copy to Clipboard"
+          }, 2000)
+        })
 
-      sidebarRoot!.querySelector("#crewjobs-download-cover-letter-pdf")?.addEventListener("click", () => {
-        const doc = new jsPDF()
-        const margin = 20
-        const pageWidth = doc.internal.pageSize.getWidth()
-        const maxWidth = pageWidth - margin * 2
+        sidebarRoot!
+          .querySelector("#crewjobs-download-cover-letter-pdf")
+          ?.addEventListener("click", () => {
+            const doc = new jsPDF()
+            const margin = 20
+            const pageWidth = doc.internal.pageSize.getWidth()
+            const maxWidth = pageWidth - margin * 2
 
-        doc.setFont("helvetica", "normal")
-        doc.setFontSize(12)
+            doc.setFont("helvetica", "normal")
+            doc.setFontSize(12)
 
-        const lines = doc.splitTextToSize(result.coverLetter, maxWidth)
-        const lineHeight = 7
-        let y = margin
+            const lines = doc.splitTextToSize(result.coverLetter, maxWidth)
+            const lineHeight = 7
+            let y = margin
 
-        for (const line of lines) {
-          if (y + lineHeight > doc.internal.pageSize.getHeight() - margin) {
-            doc.addPage()
-            y = margin
-          }
-          doc.text(line, margin, y)
-          y += lineHeight
-        }
+            for (const line of lines) {
+              if (y + lineHeight > doc.internal.pageSize.getHeight() - margin) {
+                doc.addPage()
+                y = margin
+              }
+              doc.text(line, margin, y)
+              y += lineHeight
+            }
 
-        const filename = `Cover_Letter_${scraped.company ? scraped.company.replace(/\s+/g, "_") : "Job"}.pdf`
-        const pdfBlob = doc.output("blob")
-        const url = URL.createObjectURL(pdfBlob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-      })
-    } catch (err: any) {
-      resultDiv.innerHTML = `<div class="crewjobs-message crewjobs-message-error" style="margin-top:8px">${escapeHtml(err.message)}</div>`
-    }
+            const filename = `Cover_Letter_${scraped.company ? scraped.company.replace(/\s+/g, "_") : "Job"}.pdf`
+            const pdfBlob = doc.output("blob")
+            const url = URL.createObjectURL(pdfBlob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+          })
+      } catch (err: any) {
+        resultDiv.innerHTML = `<div class="crewjobs-message crewjobs-message-error" style="margin-top:8px">${escapeHtml(err.message)}</div>`
+      }
 
-    btn.disabled = false
-    btn.textContent = "✉️ Generate Cover Letter"
-  })
+      btn.disabled = false
+      btn.textContent = "✉️ Generate Cover Letter"
+    })
 
   // Save application
   const saveBtn = sidebarRoot.querySelector("#crewjobs-save") as HTMLButtonElement
   if (saveBtn) {
     saveBtn.addEventListener("click", async () => {
-      const company = (sidebarRoot!.querySelector("#crewjobs-company") as HTMLInputElement).value.trim()
+      const company = (
+        sidebarRoot!.querySelector("#crewjobs-company") as HTMLInputElement
+      ).value.trim()
       const title = (sidebarRoot!.querySelector("#crewjobs-title") as HTMLInputElement).value.trim()
       const msgArea = sidebarRoot!.querySelector("#crewjobs-message-area") as HTMLElement
 
       if (!company || !title) {
-        msgArea.innerHTML = '<div class="crewjobs-message crewjobs-message-error">Company and job title are required.</div>'
+        msgArea.innerHTML =
+          '<div class="crewjobs-message crewjobs-message-error">Company and job title are required.</div>'
         return
       }
-      const workspaceSelect = sidebarRoot!.querySelector("#crewjobs-workspace") as HTMLSelectElement | null
+      const workspaceSelect = sidebarRoot!.querySelector(
+        "#crewjobs-workspace",
+      ) as HTMLSelectElement | null
       if (workspaceSelect && !workspaceSelect.value) {
-        msgArea.innerHTML = '<div class="crewjobs-message crewjobs-message-error">Choose a workspace.</div>'
+        msgArea.innerHTML =
+          '<div class="crewjobs-message crewjobs-message-error">Choose a workspace.</div>'
         return
       }
 
@@ -485,21 +528,35 @@ async function renderMain(user: any) {
           company,
           title,
           link: (sidebarRoot!.querySelector("#crewjobs-link") as HTMLInputElement).value || null,
-          platform: (sidebarRoot!.querySelector("#crewjobs-platform") as HTMLInputElement).value || "Other",
+          platform:
+            (sidebarRoot!.querySelector("#crewjobs-platform") as HTMLInputElement).value || "Other",
           status: settings?.defaultStatus || "Applied",
-          jobType: (sidebarRoot!.querySelector("#crewjobs-jobtype") as HTMLSelectElement).value || null,
-          workLocation: (sidebarRoot!.querySelector("#crewjobs-worklocation") as HTMLSelectElement).value || null,
-          location: (sidebarRoot!.querySelector("#crewjobs-location") as HTMLInputElement).value || null,
-          appliedAt: new Date((sidebarRoot!.querySelector("#crewjobs-appliedat") as HTMLInputElement).value).toISOString(),
+          jobType:
+            (sidebarRoot!.querySelector("#crewjobs-jobtype") as HTMLSelectElement).value || null,
+          workLocation:
+            (sidebarRoot!.querySelector("#crewjobs-worklocation") as HTMLSelectElement).value ||
+            null,
+          location:
+            (sidebarRoot!.querySelector("#crewjobs-location") as HTMLInputElement).value || null,
+          appliedAt: new Date(
+            (sidebarRoot!.querySelector("#crewjobs-appliedat") as HTMLInputElement).value,
+          ).toISOString(),
           followUpAt: (sidebarRoot!.querySelector("#crewjobs-followup") as HTMLInputElement).value
-            ? new Date((sidebarRoot!.querySelector("#crewjobs-followup") as HTMLInputElement).value).toISOString()
+            ? new Date(
+                (sidebarRoot!.querySelector("#crewjobs-followup") as HTMLInputElement).value,
+              ).toISOString()
             : null,
-          notes: (sidebarRoot!.querySelector("#crewjobs-notes") as HTMLTextAreaElement).value || null,
-          resume: extSettings.saveResumeInApp && lastGeneratedResumeUrl ? lastGeneratedResumeUrl : null,
-          workspaceId: (sidebarRoot!.querySelector("#crewjobs-workspace") as HTMLSelectElement | null)?.value || undefined,
+          notes:
+            (sidebarRoot!.querySelector("#crewjobs-notes") as HTMLTextAreaElement).value || null,
+          resume:
+            extSettings.saveResumeInApp && lastGeneratedResumeUrl ? lastGeneratedResumeUrl : null,
+          workspaceId:
+            (sidebarRoot!.querySelector("#crewjobs-workspace") as HTMLSelectElement | null)
+              ?.value || undefined,
         })
 
-        msgArea.innerHTML = '<div class="crewjobs-message crewjobs-message-success">✓ Application saved!</div>'
+        msgArea.innerHTML =
+          '<div class="crewjobs-message crewjobs-message-success">✓ Application saved!</div>'
         saveBtn.textContent = "Saved!"
         setTimeout(() => {
           saveBtn.disabled = false
@@ -516,22 +573,31 @@ async function renderMain(user: any) {
   const saveJobBtn = sidebarRoot.querySelector("#crewjobs-save-job") as HTMLButtonElement
   if (saveJobBtn) {
     saveJobBtn.addEventListener("click", async () => {
-      const company = (sidebarRoot!.querySelector("#crewjobs-company") as HTMLInputElement).value.trim()
+      const company = (
+        sidebarRoot!.querySelector("#crewjobs-company") as HTMLInputElement
+      ).value.trim()
       const title = (sidebarRoot!.querySelector("#crewjobs-title") as HTMLInputElement).value.trim()
-      const workLocation = (sidebarRoot!.querySelector("#crewjobs-worklocation") as HTMLSelectElement).value
+      const workLocation = (
+        sidebarRoot!.querySelector("#crewjobs-worklocation") as HTMLSelectElement
+      ).value
       const msgArea = sidebarRoot!.querySelector("#crewjobs-message-area") as HTMLElement
 
       if (!company || !title) {
-        msgArea.innerHTML = '<div class="crewjobs-message crewjobs-message-error">Company and job title are required.</div>'
+        msgArea.innerHTML =
+          '<div class="crewjobs-message crewjobs-message-error">Company and job title are required.</div>'
         return
       }
       if (workLocation !== "Remote") {
-        msgArea.innerHTML = '<div class="crewjobs-message crewjobs-message-error">Only remote jobs can be saved to the job board.</div>'
+        msgArea.innerHTML =
+          '<div class="crewjobs-message crewjobs-message-error">Only remote jobs can be saved to the job board.</div>'
         return
       }
-      const workspaceSelect = sidebarRoot!.querySelector("#crewjobs-workspace") as HTMLSelectElement | null
+      const workspaceSelect = sidebarRoot!.querySelector(
+        "#crewjobs-workspace",
+      ) as HTMLSelectElement | null
       if (workspaceSelect && !workspaceSelect.value) {
-        msgArea.innerHTML = '<div class="crewjobs-message crewjobs-message-error">Choose a workspace.</div>'
+        msgArea.innerHTML =
+          '<div class="crewjobs-message crewjobs-message-error">Choose a workspace.</div>'
         return
       }
 
@@ -542,14 +608,21 @@ async function renderMain(user: any) {
           company,
           title,
           link: (sidebarRoot!.querySelector("#crewjobs-link") as HTMLInputElement).value || null,
-          platform: (sidebarRoot!.querySelector("#crewjobs-platform") as HTMLInputElement).value || "Other",
-          jobType: (sidebarRoot!.querySelector("#crewjobs-jobtype") as HTMLSelectElement).value || null,
-          location: (sidebarRoot!.querySelector("#crewjobs-location") as HTMLInputElement).value || null,
-          notes: (sidebarRoot!.querySelector("#crewjobs-notes") as HTMLTextAreaElement).value || null,
+          platform:
+            (sidebarRoot!.querySelector("#crewjobs-platform") as HTMLInputElement).value || "Other",
+          jobType:
+            (sidebarRoot!.querySelector("#crewjobs-jobtype") as HTMLSelectElement).value || null,
+          location:
+            (sidebarRoot!.querySelector("#crewjobs-location") as HTMLInputElement).value || null,
+          notes:
+            (sidebarRoot!.querySelector("#crewjobs-notes") as HTMLTextAreaElement).value || null,
           workLocation: "Remote",
-          workspaceId: (sidebarRoot!.querySelector("#crewjobs-workspace") as HTMLSelectElement | null)?.value || undefined,
+          workspaceId:
+            (sidebarRoot!.querySelector("#crewjobs-workspace") as HTMLSelectElement | null)
+              ?.value || undefined,
         })
-        msgArea.innerHTML = '<div class="crewjobs-message crewjobs-message-success">✓ Remote job saved for assignment.</div>'
+        msgArea.innerHTML =
+          '<div class="crewjobs-message crewjobs-message-success">✓ Remote job saved for assignment.</div>'
         saveJobBtn.textContent = "Saved!"
         setTimeout(() => {
           saveJobBtn.disabled = false
@@ -576,7 +649,12 @@ function isCustomQuestion(field: DetectedField): boolean {
   // Consider it a question if label is long enough to be a question or contains question words
   if (label.length > 20) return true
   if (label.includes("?")) return true
-  if (label.match(/^(why|how|what|describe|tell|explain|please|are you|do you|have you|would you|can you)/)) return true
+  if (
+    label.match(
+      /^(why|how|what|describe|tell|explain|please|are you|do you|have you|would you|can you)/,
+    )
+  )
+    return true
   return false
 }
 
@@ -591,8 +669,8 @@ function renderAutofillSection(): string {
           🔄
         </button>
       </div>
-      ${!cachedProfile ? '<div class="crewjobs-message crewjobs-message-error">Could not load profile. Please set up your profile first.</div>' : ''}
-      <div class="crewjobs-field-count">${detectedFields.length} field${detectedFields.length !== 1 ? 's' : ''} detected</div>
+      ${!cachedProfile ? '<div class="crewjobs-message crewjobs-message-error">Could not load profile. Please set up your profile first.</div>' : ""}
+      <div class="crewjobs-field-count">${detectedFields.length} field${detectedFields.length !== 1 ? "s" : ""} detected</div>
       <div id="crewjobs-fields-list">
         ${renderFieldsList(detectedFields, false)}
       </div>
@@ -602,7 +680,7 @@ function renderAutofillSection(): string {
     <div id="crewjobs-fields-list">
       ${renderFieldsListDisabled(detectedFields)}
     </div>
-    ${detectedFields.filter(f => isCustomQuestion(f)).length === 0 ? '<div style="font-size:12px;color:#888;text-align:center;padding:12px 0">Auto-fill is disabled. Enable it in Settings (⚙️).</div>' : ''}
+    ${detectedFields.filter((f) => isCustomQuestion(f)).length === 0 ? '<div style="font-size:12px;color:#888;text-align:center;padding:12px 0">Auto-fill is disabled. Enable it in Settings (⚙️).</div>' : ""}
   `
 }
 
@@ -641,7 +719,7 @@ function bindAutofillEvents() {
             const success = await attachFileToInput(
               field.element as HTMLInputElement,
               resumeInfo.url,
-              resumeInfo.filename || "resume.pdf"
+              resumeInfo.filename || "resume.pdf",
             )
             if (success) field.filled = true
           }
@@ -660,26 +738,34 @@ function bindAutofillEvents() {
 }
 
 function renderFieldsListDisabled(fields: DetectedField[]): string {
-  const filtered = fields.filter(f => f.type !== "select" && (f.type === "text" || f.type === "textarea"))
-  if (filtered.length === 0) return ''
+  const filtered = fields.filter(
+    (f) => f.type !== "select" && (f.type === "text" || f.type === "textarea"),
+  )
+  if (filtered.length === 0) return ""
 
-  return filtered.map((f) => {
-    const idx = fields.indexOf(f)
-    const isQuestion = isCustomQuestion(f)
-    const statusIcon = f.filled ? "✅" : (isQuestion ? "💬" : "⬜")
-    const labelClass = f.filled ? "crewjobs-field-label crewjobs-field-filled" : "crewjobs-field-label"
-    const typeLabel = "✎ text"
-    const matchDot = isQuestion ? '<span class="crewjobs-match-dot" style="background:#f59e0b"></span>' : '<span class="crewjobs-unmatch-dot"></span>'
+  return filtered
+    .map((f) => {
+      const idx = fields.indexOf(f)
+      const isQuestion = isCustomQuestion(f)
+      const statusIcon = f.filled ? "✅" : isQuestion ? "💬" : "⬜"
+      const labelClass = f.filled
+        ? "crewjobs-field-label crewjobs-field-filled"
+        : "crewjobs-field-label"
+      const typeLabel = "✎ text"
+      const matchDot = isQuestion
+        ? '<span class="crewjobs-match-dot" style="background:#f59e0b"></span>'
+        : '<span class="crewjobs-unmatch-dot"></span>'
 
-    const aiBtn = isQuestion && !f.filled
-      ? `<div class="crewjobs-field-actions"><button class="crewjobs-ai-btn" data-field-idx="${idx}" title="Generate AI answer">✨ AI</button></div>`
-      : ""
-    const answerBlock = f.aiAnswer
-      ? `<div style="margin:4px 0 8px 24px;padding:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:11px;line-height:1.5;color:#166534;white-space:pre-wrap">${escapeHtml(f.aiAnswer)}</div>`
-      : ""
+      const aiBtn =
+        isQuestion && !f.filled
+          ? `<div class="crewjobs-field-actions"><button class="crewjobs-ai-btn" data-field-idx="${idx}" title="Generate AI answer">✨ AI</button></div>`
+          : ""
+      const answerBlock = f.aiAnswer
+        ? `<div style="margin:4px 0 8px 24px;padding:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:11px;line-height:1.5;color:#166534;white-space:pre-wrap">${escapeHtml(f.aiAnswer)}</div>`
+        : ""
 
-    return `
-      <div class="crewjobs-field-row${isQuestion ? ' crewjobs-field-row-question' : ''}">
+      return `
+      <div class="crewjobs-field-row${isQuestion ? " crewjobs-field-row-question" : ""}">
         <span class="crewjobs-field-status">${statusIcon}</span>
         <div class="crewjobs-field-info">
           <span class="${labelClass}">${escapeHtml(f.label)}</span>
@@ -689,7 +775,8 @@ function renderFieldsListDisabled(fields: DetectedField[]): string {
       </div>
       ${answerBlock}
     `
-  }).join("")
+    })
+    .join("")
 }
 
 function renderFieldsList(fields: DetectedField[], questionsOnly = false): string {
@@ -697,29 +784,48 @@ function renderFieldsList(fields: DetectedField[], questionsOnly = false): strin
     return '<div style="font-size:12px;color:#888;text-align:center;padding:20px 0">No form fields detected on this page.<br>Navigate to a job application form and click 🔄</div>'
   }
 
-  const filtered = questionsOnly ? fields.filter(f => isCustomQuestion(f)) : fields
+  const filtered = questionsOnly ? fields.filter((f) => isCustomQuestion(f)) : fields
   if (filtered.length === 0 && questionsOnly) {
-    return ''
+    return ""
   }
 
-  return filtered.map((f) => {
-    const idx = fields.indexOf(f)
-    const matched = f.profileKey !== null
-    const isQuestion = isCustomQuestion(f)
-    const statusIcon = f.filled ? "✅" : (matched ? "⬜" : (isQuestion ? "💬" : "❌"))
-    const labelClass = f.filled ? "crewjobs-field-label crewjobs-field-filled" : "crewjobs-field-label"
-    const typeLabel = f.type === "file" ? "📎 file" : f.type === "checkbox" ? "☑ check" : f.type === "radio" ? "◉ radio" : f.type === "select" ? "▾ select" : "✎ text"
-    const matchDot = matched ? '<span class="crewjobs-match-dot"></span>' : (isQuestion ? '<span class="crewjobs-match-dot" style="background:#f59e0b"></span>' : '<span class="crewjobs-unmatch-dot"></span>')
+  return filtered
+    .map((f) => {
+      const idx = fields.indexOf(f)
+      const matched = f.profileKey !== null
+      const isQuestion = isCustomQuestion(f)
+      const statusIcon = f.filled ? "✅" : matched ? "⬜" : isQuestion ? "💬" : "❌"
+      const labelClass = f.filled
+        ? "crewjobs-field-label crewjobs-field-filled"
+        : "crewjobs-field-label"
+      const typeLabel =
+        f.type === "file"
+          ? "📎 file"
+          : f.type === "checkbox"
+            ? "☑ check"
+            : f.type === "radio"
+              ? "◉ radio"
+              : f.type === "select"
+                ? "▾ select"
+                : "✎ text"
+      const matchDot = matched
+        ? '<span class="crewjobs-match-dot"></span>'
+        : isQuestion
+          ? '<span class="crewjobs-match-dot" style="background:#f59e0b"></span>'
+          : '<span class="crewjobs-unmatch-dot"></span>'
 
-    const rowClass = isQuestion ? "crewjobs-field-row crewjobs-field-row-question" : "crewjobs-field-row"
-    const aiBtn = isQuestion && !f.filled
-      ? `<div class="crewjobs-field-actions"><button class="crewjobs-ai-btn" data-field-idx="${idx}" title="Generate AI answer">✨ AI</button></div>`
-      : ""
-    const answerBlock = f.aiAnswer
-      ? `<div style="margin:4px 0 8px 24px;padding:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:11px;line-height:1.5;color:#166534;white-space:pre-wrap">${escapeHtml(f.aiAnswer)}</div>`
-      : ""
+      const rowClass = isQuestion
+        ? "crewjobs-field-row crewjobs-field-row-question"
+        : "crewjobs-field-row"
+      const aiBtn =
+        isQuestion && !f.filled
+          ? `<div class="crewjobs-field-actions"><button class="crewjobs-ai-btn" data-field-idx="${idx}" title="Generate AI answer">✨ AI</button></div>`
+          : ""
+      const answerBlock = f.aiAnswer
+        ? `<div style="margin:4px 0 8px 24px;padding:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:11px;line-height:1.5;color:#166534;white-space:pre-wrap">${escapeHtml(f.aiAnswer)}</div>`
+        : ""
 
-    return `
+      return `
       <div class="${rowClass}">
         <span class="crewjobs-field-status">${statusIcon}</span>
         <div class="crewjobs-field-info">
@@ -730,7 +836,8 @@ function renderFieldsList(fields: DetectedField[], questionsOnly = false): strin
       </div>
       ${answerBlock}
     `
-  }).join("")
+    })
+    .join("")
 }
 
 function bindClose() {
@@ -740,7 +847,7 @@ function bindClose() {
 function bindAIButtons() {
   if (!sidebarRoot) return
   const btns = sidebarRoot.querySelectorAll<HTMLButtonElement>(".crewjobs-ai-btn")
-  btns.forEach(btn => {
+  btns.forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation()
       const idx = parseInt(btn.getAttribute("data-field-idx") || "-1")

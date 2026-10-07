@@ -42,11 +42,11 @@ router.get("/", async (req: AuthRequest, res) => {
 // PUT /api/profile
 router.put("/", async (req: AuthRequest, res) => {
   try {
-    const { resumeUrl, resumeFilename, ...updateData } = req.body
+    const { resumeUrl: _resumeUrl, resumeFilename: _resumeFilename, ...updateData } = req.body
     const profile = await Profile.findOneAndUpdate(
       { userId: req.userId },
       { ...updateData, userId: req.userId },
-      { new: true, upsert: true, runValidators: true }
+      { new: true, upsert: true, runValidators: true },
     ).lean()
     res.json({ profile })
   } catch (error) {
@@ -73,7 +73,7 @@ router.post("/resume", upload.single("resume"), async (req: AuthRequest, res) =>
         resumeFilename: req.file.originalname,
         resumeUrl: blob.url,
       },
-      { upsert: true }
+      { upsert: true },
     )
 
     res.json({
@@ -104,11 +104,13 @@ router.delete("/resume", async (req: AuthRequest, res) => {
   try {
     const profile = await Profile.findOne({ userId: req.userId }).select("resumeUrl")
     if (profile?.resumeUrl) {
-      try { await del(profile.resumeUrl) } catch {}
+      try {
+        await del(profile.resumeUrl)
+      } catch {}
     }
     await Profile.findOneAndUpdate(
       { userId: req.userId },
-      { $unset: { resumeUrl: 1, resumeFilename: 1 } }
+      { $unset: { resumeUrl: 1, resumeFilename: 1 } },
     )
     res.json({ success: true })
   } catch (error) {
@@ -150,7 +152,7 @@ router.post("/parse-resume", upload.single("resume"), async (req: AuthRequest, r
         resumeFilename: req.file.originalname,
         resumeUrl: blob.url,
       },
-      { upsert: true }
+      { upsert: true },
     )
 
     // Parse with AI SDK
@@ -169,30 +171,36 @@ router.post("/parse-resume", upload.single("resume"), async (req: AuthRequest, r
       portfolio: z.string(),
       otherSocials: z.string(),
       summary: z.string(),
-      education: z.array(z.object({
-        school: z.string(),
-        degree: z.string(),
-        field: z.string(),
-        startDate: z.string().describe("YYYY-MM or YYYY format"),
-        endDate: z.string().describe("YYYY-MM, YYYY, or 'Present'"),
-        gpa: z.string(),
-        description: z.string(),
-      })),
-      experience: z.array(z.object({
-        company: z.string(),
-        title: z.string(),
-        location: z.string(),
-        startDate: z.string().describe("YYYY-MM or YYYY format"),
-        endDate: z.string().describe("YYYY-MM, YYYY, or 'Present'"),
-        current: z.boolean().describe("true if currently working here"),
-        description: z.string(),
-      })),
-      projects: z.array(z.object({
-        name: z.string(),
-        url: z.string(),
-        description: z.string(),
-        technologies: z.string(),
-      })),
+      education: z.array(
+        z.object({
+          school: z.string(),
+          degree: z.string(),
+          field: z.string(),
+          startDate: z.string().describe("YYYY-MM or YYYY format"),
+          endDate: z.string().describe("YYYY-MM, YYYY, or 'Present'"),
+          gpa: z.string(),
+          description: z.string(),
+        }),
+      ),
+      experience: z.array(
+        z.object({
+          company: z.string(),
+          title: z.string(),
+          location: z.string(),
+          startDate: z.string().describe("YYYY-MM or YYYY format"),
+          endDate: z.string().describe("YYYY-MM, YYYY, or 'Present'"),
+          current: z.boolean().describe("true if currently working here"),
+          description: z.string(),
+        }),
+      ),
+      projects: z.array(
+        z.object({
+          name: z.string(),
+          url: z.string(),
+          description: z.string(),
+          technologies: z.string(),
+        }),
+      ),
       skills: z.array(z.string()).describe("Flat list of individual skills"),
     })
 
@@ -256,25 +264,31 @@ router.post("/generate-resume", async (req: AuthRequest, res) => {
 
     const resumeContentSchema = z.object({
       summary: z.string().describe("Professional summary tailored to the job"),
-      experience: z.array(z.object({
-        title: z.string(),
-        company: z.string(),
-        location: z.string(),
-        dates: z.string(),
-        bullets: z.array(z.string()),
-      })),
-      education: z.array(z.object({
-        degree: z.string(),
-        school: z.string(),
-        dates: z.string(),
-        details: z.string(),
-      })),
+      experience: z.array(
+        z.object({
+          title: z.string(),
+          company: z.string(),
+          location: z.string(),
+          dates: z.string(),
+          bullets: z.array(z.string()),
+        }),
+      ),
+      education: z.array(
+        z.object({
+          degree: z.string(),
+          school: z.string(),
+          dates: z.string(),
+          details: z.string(),
+        }),
+      ),
       skills: z.array(z.string()),
-      projects: z.array(z.object({
-        name: z.string(),
-        description: z.string(),
-        technologies: z.string(),
-      })),
+      projects: z.array(
+        z.object({
+          name: z.string(),
+          description: z.string(),
+          technologies: z.string(),
+        }),
+      ),
     })
 
     const result = await generateText({
@@ -314,7 +328,12 @@ CRITICAL RULES — follow these exactly:
     function drawSectionLine() {
       const y = lineY()
       doc.save()
-      doc.moveTo(55, y).lineTo(55 + pageWidth, y).lineWidth(0.75).strokeColor("#333333").stroke()
+      doc
+        .moveTo(55, y)
+        .lineTo(55 + pageWidth, y)
+        .lineWidth(0.75)
+        .strokeColor("#333333")
+        .stroke()
       doc.restore()
       doc.moveDown(0.35)
     }
@@ -322,7 +341,11 @@ CRITICAL RULES — follow these exactly:
     // === HEADER ===
     const fullName = `${profile.firstName} ${profile.lastName}`.trim()
     if (fullName) {
-      doc.fontSize(22).font("Helvetica-Bold").fillColor("#1a1a1a").text(fullName, { align: "center" })
+      doc
+        .fontSize(22)
+        .font("Helvetica-Bold")
+        .fillColor("#1a1a1a")
+        .text(fullName, { align: "center" })
       doc.moveDown(0.15)
     }
 
@@ -333,17 +356,30 @@ CRITICAL RULES — follow these exactly:
       [profile.city, profile.state].filter(Boolean).join(", "),
     ].filter(Boolean)
     if (contactParts.length) {
-      doc.fontSize(9.5).font("Helvetica").fillColor("#444444").text(contactParts.join("  •  "), { align: "center" })
+      doc
+        .fontSize(9.5)
+        .font("Helvetica")
+        .fillColor("#444444")
+        .text(contactParts.join("  •  "), { align: "center" })
     }
 
     // Links line
     const linkParts = [profile.linkedIn, profile.github, profile.portfolio].filter(Boolean)
     if (linkParts.length) {
-      doc.fontSize(9).font("Helvetica").fillColor("#555555").text(linkParts.join("  •  "), { align: "center" })
+      doc
+        .fontSize(9)
+        .font("Helvetica")
+        .fillColor("#555555")
+        .text(linkParts.join("  •  "), { align: "center" })
     }
 
     doc.moveDown(0.6)
-    doc.moveTo(55, lineY()).lineTo(55 + pageWidth, lineY()).lineWidth(1.5).strokeColor("#1a1a1a").stroke()
+    doc
+      .moveTo(55, lineY())
+      .lineTo(55 + pageWidth, lineY())
+      .lineWidth(1.5)
+      .strokeColor("#1a1a1a")
+      .stroke()
     doc.moveDown(0.5)
 
     // === PROFESSIONAL SUMMARY ===
@@ -366,8 +402,12 @@ CRITICAL RULES — follow these exactly:
         const datesText = exp.dates || ""
         const locationText = exp.location || ""
 
-        doc.fontSize(10).font("Helvetica-Bold").fillColor("#1a1a1a").text(titleText, { continued: false })
-        
+        doc
+          .fontSize(10)
+          .font("Helvetica-Bold")
+          .fillColor("#1a1a1a")
+          .text(titleText, { continued: false })
+
         const metaParts = [companyText, locationText, datesText].filter(Boolean)
         doc.fontSize(9).font("Helvetica").fillColor("#555555").text(metaParts.join("  |  "))
         doc.moveDown(0.15)
@@ -387,7 +427,11 @@ CRITICAL RULES — follow these exactly:
     if (content.skills?.length) {
       doc.fontSize(11).font("Helvetica-Bold").fillColor("#1a1a1a").text("SKILLS")
       drawSectionLine()
-      doc.fontSize(9.5).font("Helvetica").fillColor("#333333").text(content.skills.join("  •  "), { lineGap: 2 })
+      doc
+        .fontSize(9.5)
+        .font("Helvetica")
+        .fillColor("#333333")
+        .text(content.skills.join("  •  "), { lineGap: 2 })
       doc.moveDown(0.6)
     }
 
@@ -419,7 +463,11 @@ CRITICAL RULES — follow these exactly:
         if (proj.technologies) {
           doc.fontSize(8.5).font("Helvetica").fillColor("#666666").text(proj.technologies)
         }
-        doc.fontSize(9.5).font("Helvetica").fillColor("#333333").text(proj.description, { lineGap: 1.5 })
+        doc
+          .fontSize(9.5)
+          .font("Helvetica")
+          .fillColor("#333333")
+          .text(proj.description, { lineGap: 1.5 })
         if (i < content.projects.length - 1) doc.moveDown(0.3)
       }
     }
@@ -430,8 +478,14 @@ CRITICAL RULES — follow these exactly:
     // Upload to Vercel Blob
     const now = new Date()
     const dateStr = now.toISOString().replace(/[:.]/g, "-").slice(0, 19)
-    const safeTitle = (jobTitle || "resume").replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_").substring(0, 30)
-    const safeCompany = (company || "unknown").replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_").substring(0, 20)
+    const safeTitle = (jobTitle || "resume")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .replace(/\s+/g, "_")
+      .substring(0, 30)
+    const safeCompany = (company || "unknown")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .replace(/\s+/g, "_")
+      .substring(0, 20)
     const filename = `${safeTitle}_${safeCompany}_${dateStr}.pdf`
 
     const blob = await put(`generated-resumes/${req.userId}/${filename}`, pdfBuffer, {
@@ -451,7 +505,7 @@ CRITICAL RULES — follow these exactly:
             createdAt: new Date(),
           },
         },
-      }
+      },
     )
 
     res.json({
@@ -490,13 +544,15 @@ Valid profileKey values:
 - null if you cannot determine what the field is for
 
 Return ONLY a JSON array like: [{"index":0,"profileKey":"firstName"},{"index":1,"profileKey":null}]`,
-      prompt: JSON.stringify(fields.slice(0, 50).map((f: any, i: number) => ({
-        index: i,
-        label: f.label,
-        type: f.type,
-        name: f.name,
-        id: f.id,
-      }))),
+      prompt: JSON.stringify(
+        fields.slice(0, 50).map((f: any, i: number) => ({
+          index: i,
+          label: f.label,
+          type: f.type,
+          name: f.name,
+          id: f.id,
+        })),
+      ),
     })
 
     let mappings: any[] = []
@@ -521,15 +577,27 @@ router.post("/generate-answer", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Question is required" })
     }
 
-    const profile = await Profile.findOne({ userId: req.userId }).select("-resumeData -generatedResumes").lean()
+    const profile = await Profile.findOne({ userId: req.userId })
+      .select("-resumeData -generatedResumes")
+      .lean()
 
-    const profileSummary = profile ? [
-      profile.firstName && profile.lastName ? `Name: ${profile.firstName} ${profile.lastName}` : "",
-      profile.summary ? `Summary: ${profile.summary}` : "",
-      profile.experience?.length ? `Experience: ${profile.experience.map((e: any) => `${e.title} at ${e.company}`).join(", ")}` : "",
-      profile.education?.length ? `Education: ${profile.education.map((e: any) => `${e.degree} in ${e.field} from ${e.school}`).join(", ")}` : "",
-      profile.skills?.length ? `Skills: ${profile.skills.join(", ")}` : "",
-    ].filter(Boolean).join("\n") : ""
+    const profileSummary = profile
+      ? [
+          profile.firstName && profile.lastName
+            ? `Name: ${profile.firstName} ${profile.lastName}`
+            : "",
+          profile.summary ? `Summary: ${profile.summary}` : "",
+          profile.experience?.length
+            ? `Experience: ${profile.experience.map((e: any) => `${e.title} at ${e.company}`).join(", ")}`
+            : "",
+          profile.education?.length
+            ? `Education: ${profile.education.map((e: any) => `${e.degree} in ${e.field} from ${e.school}`).join(", ")}`
+            : "",
+          profile.skills?.length ? `Skills: ${profile.skills.join(", ")}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : ""
 
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const modelId = process.env.AI_MODEL || "gpt-4o-mini"
@@ -555,7 +623,9 @@ router.post("/generate-cover-letter", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Job description is required" })
     }
 
-    const profile = await Profile.findOne({ userId: req.userId }).select("-resumeData -generatedResumes").lean()
+    const profile = await Profile.findOne({ userId: req.userId })
+      .select("-resumeData -generatedResumes")
+      .lean()
     if (!profile) {
       return res.status(404).json({ error: "Profile not found. Please set up your profile first." })
     }
@@ -565,10 +635,16 @@ router.post("/generate-cover-letter", async (req: AuthRequest, res) => {
       profile.email ? `Email: ${profile.email}` : "",
       profile.phone ? `Phone: ${profile.phone}` : "",
       profile.summary ? `Summary: ${profile.summary}` : "",
-      profile.experience?.length ? `Experience:\n${(profile.experience as any[]).map((e: any) => `- ${e.title} at ${e.company} (${e.startDate}–${e.endDate}): ${e.description || ""}`).join("\n")}` : "",
-      profile.education?.length ? `Education:\n${(profile.education as any[]).map((e: any) => `- ${e.degree} in ${e.field} from ${e.school}`).join("\n")}` : "",
+      profile.experience?.length
+        ? `Experience:\n${(profile.experience as any[]).map((e: any) => `- ${e.title} at ${e.company} (${e.startDate}–${e.endDate}): ${e.description || ""}`).join("\n")}`
+        : "",
+      profile.education?.length
+        ? `Education:\n${(profile.education as any[]).map((e: any) => `- ${e.degree} in ${e.field} from ${e.school}`).join("\n")}`
+        : "",
       profile.skills?.length ? `Skills: ${profile.skills.join(", ")}` : "",
-    ].filter(Boolean).join("\n")
+    ]
+      .filter(Boolean)
+      .join("\n")
 
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const modelId = process.env.AI_MODEL || "gpt-4o-mini"
@@ -621,15 +697,27 @@ router.post("/chat", chatUpload.array("files", 5), async (req: AuthRequest, res)
       return res.status(400).json({ error: "Message or file is required" })
     }
 
-    const profile = await Profile.findOne({ userId: req.userId }).select("-resumeData -generatedResumes").lean()
+    const profile = await Profile.findOne({ userId: req.userId })
+      .select("-resumeData -generatedResumes")
+      .lean()
 
-    const profileSummary = profile ? [
-      profile.firstName && profile.lastName ? `Name: ${profile.firstName} ${profile.lastName}` : "",
-      profile.summary ? `Summary: ${profile.summary}` : "",
-      profile.experience?.length ? `Experience: ${(profile.experience as any[]).map((e: any) => `${e.title} at ${e.company}`).join(", ")}` : "",
-      profile.education?.length ? `Education: ${(profile.education as any[]).map((e: any) => `${e.degree} in ${e.field} from ${e.school}`).join(", ")}` : "",
-      profile.skills?.length ? `Skills: ${profile.skills.join(", ")}` : "",
-    ].filter(Boolean).join("\n") : ""
+    const profileSummary = profile
+      ? [
+          profile.firstName && profile.lastName
+            ? `Name: ${profile.firstName} ${profile.lastName}`
+            : "",
+          profile.summary ? `Summary: ${profile.summary}` : "",
+          profile.experience?.length
+            ? `Experience: ${(profile.experience as any[]).map((e: any) => `${e.title} at ${e.company}`).join(", ")}`
+            : "",
+          profile.education?.length
+            ? `Education: ${(profile.education as any[]).map((e: any) => `${e.degree} in ${e.field} from ${e.school}`).join(", ")}`
+            : "",
+          profile.skills?.length ? `Skills: ${profile.skills.join(", ")}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : ""
 
     // Process attached files
     const fileContents: string[] = []
@@ -639,13 +727,20 @@ router.post("/chat", chatUpload.array("files", 5), async (req: AuthRequest, res)
         if (file.mimetype === "application/pdf") {
           const parsed = await pdfParse(file.buffer)
           fileContents.push(`[File: ${file.originalname}]\n${parsed.text.substring(0, 10000)}`)
-        } else if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        } else if (
+          file.mimetype ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ) {
           const result = await mammoth.extractRawText({ buffer: file.buffer })
           fileContents.push(`[File: ${file.originalname}]\n${result.value.substring(0, 10000)}`)
         } else if (file.mimetype === "text/plain") {
-          fileContents.push(`[File: ${file.originalname}]\n${file.buffer.toString("utf-8").substring(0, 10000)}`)
+          fileContents.push(
+            `[File: ${file.originalname}]\n${file.buffer.toString("utf-8").substring(0, 10000)}`,
+          )
         } else if (file.mimetype.startsWith("image/")) {
-          fileContents.push(`[Image attached: ${file.originalname} (${file.mimetype}, ${Math.round(file.size / 1024)}KB)]`)
+          fileContents.push(
+            `[Image attached: ${file.originalname} (${file.mimetype}, ${Math.round(file.size / 1024)}KB)]`,
+          )
         }
       } catch {
         fileContents.push(`[File: ${file.originalname} - could not read contents]`)
@@ -655,7 +750,8 @@ router.post("/chat", chatUpload.array("files", 5), async (req: AuthRequest, res)
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const modelId = process.env.AI_MODEL || "gpt-4o-mini"
 
-    const attachmentText = fileContents.length > 0 ? `\n\nAttached files:\n${fileContents.join("\n\n")}` : ""
+    const attachmentText =
+      fileContents.length > 0 ? `\n\nAttached files:\n${fileContents.join("\n\n")}` : ""
 
     const result = await generateText({
       model: openai(modelId),

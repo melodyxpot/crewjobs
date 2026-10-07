@@ -5,8 +5,21 @@ import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiApproveUser, apiGetUsers, apiRejectUser, apiUpdateUserRole } from "@/lib/api"
 import { ROLE_LABELS, USER_ROLES, type UserRole } from "@/lib/types"
@@ -96,7 +109,8 @@ export default function PeoplePage() {
       <div>
         <h1 className="text-2xl font-bold">People</h1>
         <p className="text-sm text-muted-foreground">
-          New accounts stay pending until a leader approves them. The superadmin can change roles, including leader.
+          New accounts stay pending until a leader approves them. The superadmin can change roles,
+          including leader.
         </p>
       </div>
       <Tabs defaultValue="pending">
@@ -169,16 +183,24 @@ function UserTable({
             <TableRow key={person.id}>
               <TableCell className="font-medium">
                 {person.username}
-                {person.isSuperAdmin && <Badge className="ml-2" variant="outline">Superadmin</Badge>}
+                {person.isSuperAdmin && (
+                  <Badge className="ml-2" variant="outline">
+                    Superadmin
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>{person.email}</TableCell>
               <TableCell>
                 {isSuperAdmin && !person.isSuperAdmin ? (
                   <Select value={person.role} onValueChange={(role) => onRole(person.id, role)}>
-                    <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {USER_ROLES.map((role) => (
-                        <SelectItem key={role} value={role}>{ROLE_LABELS[role as UserRole]}</SelectItem>
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABELS[role as UserRole]}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -186,13 +208,21 @@ function UserTable({
                   ROLE_LABELS[person.role as UserRole] || person.role
                 )}
               </TableCell>
-              <TableCell><Badge variant="outline" className="capitalize">{person.status}</Badge></TableCell>
+              <TableCell>
+                <Badge variant="outline" className="capitalize">
+                  {person.status}
+                </Badge>
+              </TableCell>
               <TableCell className="space-x-2 text-right">
                 {person.status !== "approved" && !person.isSuperAdmin && (
-                  <Button size="sm" onClick={() => onApprove(person.id)}>Approve</Button>
+                  <Button size="sm" onClick={() => onApprove(person.id)}>
+                    Approve
+                  </Button>
                 )}
                 {person.status !== "rejected" && !person.isSuperAdmin && (
-                  <Button size="sm" variant="outline" onClick={() => onReject(person.id)}>Reject</Button>
+                  <Button size="sm" variant="outline" onClick={() => onReject(person.id)}>
+                    Reject
+                  </Button>
                 )}
               </TableCell>
             </TableRow>

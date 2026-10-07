@@ -16,7 +16,11 @@ function mapApplication(app: any) {
     ...app,
     userId: user?._id?.toString() || app.userId?.toString?.() || app.userId,
     bidderName: app.bidderName || displayName(user || {}),
-    workspaceId: app.workspaceId?._id?.toString?.() || app.workspaceId?.toString?.() || app.workspaceId || null,
+    workspaceId:
+      app.workspaceId?._id?.toString?.() ||
+      app.workspaceId?.toString?.() ||
+      app.workspaceId ||
+      null,
     workspaceName: app.workspaceId?.name || app.workspaceName || "",
   }
 }
@@ -123,7 +127,10 @@ router.get("/filters", async (req: AuthRequest, res) => {
       status: "approved",
       role: { $in: ["bidder", "leader", "moderator"] },
     }
-    const bidders = await User.find(bidderQuery).select("username name email role").sort({ username: 1 }).lean()
+    const bidders = await User.find(bidderQuery)
+      .select("username name email role")
+      .sort({ username: 1 })
+      .lean()
     res.json({
       bidders: bidders.map((bidder) => ({
         id: bidder._id.toString(),
@@ -131,7 +138,10 @@ router.get("/filters", async (req: AuthRequest, res) => {
         name: displayName(bidder),
         role: bidder.role,
       })),
-      workspaces: workspaces.map((workspace) => ({ id: workspace._id.toString(), name: workspace.name })),
+      workspaces: workspaces.map((workspace) => ({
+        id: workspace._id.toString(),
+        name: workspace.name,
+      })),
     })
   } catch {
     res.status(500).json({ error: "Failed to load filters" })
@@ -204,7 +214,10 @@ router.get("/:id", async (req: AuthRequest, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
       return res.status(404).json({ error: "Application not found" })
     }
-    const app = await JobApplication.findById(req.params.id).populate("userId", "email name username").populate("workspaceId", "name").lean()
+    const app = await JobApplication.findById(req.params.id)
+      .populate("userId", "email name username")
+      .populate("workspaceId", "name")
+      .lean()
     if (!app || !(await canReadApplication(req, app))) {
       return res.status(404).json({ error: "Application not found" })
     }
@@ -217,7 +230,8 @@ router.get("/:id", async (req: AuthRequest, res) => {
 router.post("/", async (req: AuthRequest, res) => {
   try {
     const stamped = await stampApplication(req, req.body)
-    if (stamped.error || !stamped.data) return res.status(400).json({ error: stamped.error || "Invalid application" })
+    if (stamped.error || !stamped.data)
+      return res.status(400).json({ error: stamped.error || "Invalid application" })
     await recordRemoteBid(stamped.data, req.userId!, stamped.data.bidderName)
     const app = await JobApplication.create(stamped.data)
     res.status(201).json({ data: app })
@@ -239,7 +253,10 @@ router.put("/:id", async (req: AuthRequest, res) => {
     delete updates._id
     if (!isManager(req.user!)) delete updates.workspaceId
 
-    const app = await JobApplication.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true }).lean()
+    const app = await JobApplication.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    }).lean()
     res.json({ data: app })
   } catch {
     res.status(500).json({ error: "Failed to update application" })
@@ -266,7 +283,8 @@ router.post("/bulk", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "No applications to save" })
     }
     const stamped = await stampApplication(req, { workspaceId: req.body.workspaceId || null })
-    if (stamped.error || !stamped.data) return res.status(400).json({ error: stamped.error || "Invalid application" })
+    if (stamped.error || !stamped.data)
+      return res.status(400).json({ error: stamped.error || "Invalid application" })
 
     const docs = applications.map((app: any) => {
       const copy = { ...app }

@@ -1,7 +1,10 @@
 import { User } from "../models/User"
 
 function sanitizeUsername(value: string) {
-  const cleaned = value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24)
+  const cleaned = value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 24)
   return cleaned || "user"
 }
 

@@ -46,7 +46,8 @@ export interface ChartDataPoint {
   count: number
 }
 
-export type ApplicationStatus = "Applied" | "Interview" | "Offer" | "Rejected" | "Withdrawn" | "No Response"
+export type ApplicationStatus =
+  "Applied" | "Interview" | "Offer" | "Rejected" | "Withdrawn" | "No Response"
 
 export const DEFAULT_STATUSES: ApplicationStatus[] = [
   "Applied",
@@ -88,7 +89,14 @@ export interface PaginatedResponse<T> {
   error?: string
 }
 
-export const USER_ROLES = ["bidder", "caller", "finance", "leader", "moderator", "developer"] as const
+export const USER_ROLES = [
+  "bidder",
+  "caller",
+  "finance",
+  "leader",
+  "moderator",
+  "developer",
+] as const
 export type UserRole = (typeof USER_ROLES)[number]
 
 export const SIGNUP_ROLES = ["bidder", "caller", "finance", "moderator", "developer"] as const
