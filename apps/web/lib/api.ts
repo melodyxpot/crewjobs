@@ -130,7 +130,9 @@ export async function apiGetDashboardStats() {
 }
 
 export async function apiGetChartData(days = 14) {
-  const res = await authFetch(`${API_BASE}/dashboard/chart?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`)
+  const res = await authFetch(
+    `${API_BASE}/dashboard/chart?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`,
+  )
   if (!res.ok) throw new Error("Failed to fetch chart data")
   return res.json()
 }
@@ -189,7 +191,11 @@ export async function apiDownloadResume() {
   return res.json()
 }
 
-export async function apiGenerateResume(data: { jobTitle: string; company: string; jobDescription: string }) {
+export async function apiGenerateResume(data: {
+  jobTitle: string
+  company: string
+  jobDescription: string
+}) {
   const res = await authFetch(`${API_BASE}/profile/generate-resume`, {
     method: "POST",
     body: JSON.stringify(data),
@@ -295,7 +301,9 @@ export async function apiLeaveTeam(teamId: string) {
 }
 
 export async function apiGetTeamDashboard(teamId: string, days = 14) {
-  const res = await authFetch(`${API_BASE}/teams/${teamId}/dashboard?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`)
+  const res = await authFetch(
+    `${API_BASE}/teams/${teamId}/dashboard?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`,
+  )
   if (!res.ok) throw new Error("Failed to fetch team dashboard")
   return res.json()
 }
@@ -366,7 +374,11 @@ export async function apiUpdateWorkspace(id: string, name: string) {
   return result
 }
 
-export async function apiUpdateWorkspaceMembers(id: string, bidderIds: string[], callerIds: string[]) {
+export async function apiUpdateWorkspaceMembers(
+  id: string,
+  bidderIds: string[],
+  callerIds: string[],
+) {
   const res = await authFetch(`${API_BASE}/workspaces/${id}/members`, {
     method: "PUT",
     body: JSON.stringify({ bidderIds, callerIds }),

@@ -6,8 +6,4 @@ export {
   registerSchema,
 } from "@crewjobs/shared"
 
-export type {
-  JobApplicationFormData,
-  SettingsFormData,
-  BulkParseFormData,
-} from "@crewjobs/shared"
+export type { JobApplicationFormData, SettingsFormData, BulkParseFormData } from "@crewjobs/shared"

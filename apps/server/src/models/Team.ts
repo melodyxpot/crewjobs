@@ -14,11 +14,14 @@ export interface ITeam extends Document {
   updatedAt: Date
 }
 
-const teamMemberSchema = new Schema<ITeamMember>({
-  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  role: { type: String, enum: ["leader", "member"], default: "member" },
-  joinedAt: { type: Date, default: Date.now },
-}, { _id: false })
+const teamMemberSchema = new Schema<ITeamMember>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    role: { type: String, enum: ["leader", "member"], default: "member" },
+    joinedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+)
 
 const teamSchema = new Schema<ITeam>(
   {
@@ -26,7 +29,7 @@ const teamSchema = new Schema<ITeam>(
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     members: { type: [teamMemberSchema], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 teamSchema.index({ "members.userId": 1 })

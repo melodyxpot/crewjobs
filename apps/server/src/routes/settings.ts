@@ -27,7 +27,7 @@ router.put("/", async (req: AuthRequest, res) => {
     const settings = await Settings.findOneAndUpdate(
       { userId: req.userId },
       { ...req.body, userId: req.userId },
-      { new: true, upsert: true, runValidators: true }
+      { new: true, upsert: true, runValidators: true },
     ).lean()
 
     res.json({ settings })

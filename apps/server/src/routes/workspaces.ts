@@ -94,14 +94,26 @@ router.put("/:id/members", async (req: AuthRequest, res) => {
     const bidderIds = [...new Set((req.body.bidderIds || []) as string[])]
     const callerIds = [...new Set((req.body.callerIds || []) as string[])]
 
-    const bidders = await User.find({ _id: { $in: bidderIds }, role: "bidder", status: "approved" }).select("_id")
+    const bidders = await User.find({
+      _id: { $in: bidderIds },
+      role: "bidder",
+      status: "approved",
+    }).select("_id")
     if (bidders.length !== bidderIds.length) {
-      return res.status(400).json({ error: "Each assigned bidder must be an approved user with the bidder role" })
+      return res
+        .status(400)
+        .json({ error: "Each assigned bidder must be an approved user with the bidder role" })
     }
 
-    const callers = await User.find({ _id: { $in: callerIds }, role: "caller", status: "approved" }).select("_id")
+    const callers = await User.find({
+      _id: { $in: callerIds },
+      role: "caller",
+      status: "approved",
+    }).select("_id")
     if (callers.length !== callerIds.length) {
-      return res.status(400).json({ error: "Each assigned caller must be an approved user with the caller role" })
+      return res
+        .status(400)
+        .json({ error: "Each assigned caller must be an approved user with the caller role" })
     }
 
     if (bidderIds.length) {

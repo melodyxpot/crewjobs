@@ -7,14 +7,26 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts"
 import {
   apiGetTeams,
   apiCreateTeam,
-  apiGetTeam,
   apiDeleteTeam,
   apiAddTeamMember,
   apiChangeTeamRole,
@@ -24,7 +36,7 @@ import {
   apiGetTeamApplications,
 } from "@/lib/api"
 import { toast } from "sonner"
-import { Loader2, Plus, Trash2, UserPlus, Crown, LogOut, ArrowUpDown, Search, X } from "lucide-react"
+import { Loader2, Plus, Trash2, UserPlus, Crown, LogOut, Search, X } from "lucide-react"
 
 const COLORS = [
   "#4ade80",
@@ -63,11 +75,12 @@ export default function TeamPage() {
   const [adding, setAdding] = useState(false)
 
   const isLeader = selectedTeam?.members?.some(
-    (m: any) => (m.userId?._id || m.userId) === user?.id && m.role === "leader"
+    (m: any) => (m.userId?._id || m.userId) === user?.id && m.role === "leader",
   )
 
   useEffect(() => {
     loadTeams()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch the team list once
   }, [])
 
   useEffect(() => {
@@ -75,12 +88,14 @@ export default function TeamPage() {
       loadDashboard()
       loadApplications()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when the selected team changes
   }, [selectedTeam?._id, isLeader])
 
   useEffect(() => {
     if (selectedTeam && isLeader) {
       loadApplications()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when the applications query changes
   }, [appsPage, appsSearch, appsMember])
 
   async function loadTeams() {
@@ -126,7 +141,7 @@ export default function TeamPage() {
     setCreating(true)
     try {
       const { team } = await apiCreateTeam(newTeamName.trim())
-      setTeams(prev => [...prev, team])
+      setTeams((prev) => [...prev, team])
       setSelectedTeam(team)
       setNewTeamName("")
       toast.success("Team created")
@@ -140,8 +155,8 @@ export default function TeamPage() {
     if (!selectedTeam || !confirm("Are you sure you want to delete this team?")) return
     try {
       await apiDeleteTeam(selectedTeam._id)
-      setTeams(prev => prev.filter(t => t._id !== selectedTeam._id))
-      setSelectedTeam(teams.length > 1 ? teams.find(t => t._id !== selectedTeam._id) : null)
+      setTeams((prev) => prev.filter((t) => t._id !== selectedTeam._id))
+      setSelectedTeam(teams.length > 1 ? teams.find((t) => t._id !== selectedTeam._id) : null)
       setDashboardData(null)
       toast.success("Team deleted")
     } catch (err: any) {
@@ -155,7 +170,7 @@ export default function TeamPage() {
     try {
       const { team } = await apiAddTeamMember(selectedTeam._id, addEmail.trim(), addRole)
       setSelectedTeam(team)
-      setTeams(prev => prev.map(t => t._id === team._id ? team : t))
+      setTeams((prev) => prev.map((t) => (t._id === team._id ? team : t)))
       setAddEmail("")
       toast.success("Member added")
     } catch (err: any) {
@@ -169,7 +184,7 @@ export default function TeamPage() {
     try {
       const { team } = await apiChangeTeamRole(selectedTeam._id, userId, role)
       setSelectedTeam(team)
-      setTeams(prev => prev.map(t => t._id === team._id ? team : t))
+      setTeams((prev) => prev.map((t) => (t._id === team._id ? team : t)))
       toast.success("Role updated")
     } catch (err: any) {
       toast.error(err.message)
@@ -181,7 +196,7 @@ export default function TeamPage() {
     try {
       const { team } = await apiRemoveTeamMember(selectedTeam._id, userId)
       setSelectedTeam(team)
-      setTeams(prev => prev.map(t => t._id === team._id ? team : t))
+      setTeams((prev) => prev.map((t) => (t._id === team._id ? team : t)))
       toast.success("Member removed")
     } catch (err: any) {
       toast.error(err.message)
@@ -192,7 +207,7 @@ export default function TeamPage() {
     if (!selectedTeam || !confirm("Leave this team?")) return
     try {
       await apiLeaveTeam(selectedTeam._id)
-      setTeams(prev => prev.filter(t => t._id !== selectedTeam._id))
+      setTeams((prev) => prev.filter((t) => t._id !== selectedTeam._id))
       setSelectedTeam(null)
       setDashboardData(null)
       toast.success("Left team")
@@ -224,12 +239,18 @@ export default function TeamPage() {
           <Input
             placeholder="New team name..."
             value={newTeamName}
-            onChange={e => setNewTeamName(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") handleCreateTeam() }}
+            onChange={(e) => setNewTeamName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreateTeam()
+            }}
             className="w-[200px]"
           />
           <Button onClick={handleCreateTeam} disabled={creating || !newTeamName.trim()} size="sm">
-            {creating ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Plus className="mr-1 h-4 w-4" />}
+            {creating ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-1 h-4 w-4" />
+            )}
             Create
           </Button>
         </div>
@@ -237,8 +258,8 @@ export default function TeamPage() {
         {teams.length > 0 && (
           <Select
             value={selectedTeam?._id || ""}
-            onValueChange={id => {
-              const t = teams.find(t => t._id === id)
+            onValueChange={(id) => {
+              const t = teams.find((t) => t._id === id)
               setSelectedTeam(t)
               setDashboardData(null)
               setTeamApps([])
@@ -249,8 +270,10 @@ export default function TeamPage() {
               <SelectValue placeholder="Select team" />
             </SelectTrigger>
             <SelectContent>
-              {teams.map(t => (
-                <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
+              {teams.map((t) => (
+                <SelectItem key={t._id} value={t._id}>
+                  {t.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -288,7 +311,12 @@ export default function TeamPage() {
                     </Button>
                   )}
                   {isLeader && (
-                    <Button variant="outline" size="sm" onClick={handleDeleteTeam} className="text-destructive hover:text-destructive">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDeleteTeam}
+                      className="text-destructive hover:text-destructive"
+                    >
                       <Trash2 className="mr-1 h-4 w-4" /> Delete Team
                     </Button>
                   )}
@@ -303,7 +331,7 @@ export default function TeamPage() {
                       <Input
                         placeholder="user@example.com"
                         value={addEmail}
-                        onChange={e => setAddEmail(e.target.value)}
+                        onChange={(e) => setAddEmail(e.target.value)}
                         className="w-[240px]"
                       />
                     </div>
@@ -319,8 +347,16 @@ export default function TeamPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={handleAddMember} disabled={adding || !addEmail.trim()} size="sm">
-                      {adding ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <UserPlus className="mr-1 h-4 w-4" />}
+                    <Button
+                      onClick={handleAddMember}
+                      disabled={adding || !addEmail.trim()}
+                      size="sm"
+                    >
+                      {adding ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="mr-1 h-4 w-4" />
+                      )}
                       Add
                     </Button>
                   </div>
@@ -352,7 +388,10 @@ export default function TeamPage() {
                           </TableCell>
                           <TableCell>
                             {isLeader && !isSelf ? (
-                              <Select value={m.role} onValueChange={v => handleChangeRole(uid, v)}>
+                              <Select
+                                value={m.role}
+                                onValueChange={(v) => handleChangeRole(uid, v)}
+                              >
                                 <SelectTrigger className="w-[110px] h-8">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -374,7 +413,12 @@ export default function TeamPage() {
                           {isLeader && (
                             <TableCell>
                               {!isSelf && (
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoveMember(uid)}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={() => handleRemoveMember(uid)}
+                                >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
@@ -403,7 +447,9 @@ export default function TeamPage() {
                     {dashboardData.memberStats?.map((m: any) => (
                       <Card key={m.userId}>
                         <CardHeader className="pb-2">
-                          <CardDescription className="truncate">{m.name || m.email}</CardDescription>
+                          <CardDescription className="truncate">
+                            {m.name || m.email}
+                          </CardDescription>
                           <CardTitle className="text-2xl">{m.monthlyCount}</CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -422,20 +468,52 @@ export default function TeamPage() {
                     <CardContent>
                       <div className="h-[400px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={dashboardData.chartData?.map((d: any) => ({
-                            ...d,
-                            label: new Date(d.date).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }),
-                          }))}>
+                          <AreaChart
+                            data={dashboardData.chartData?.map((d: any) => ({
+                              ...d,
+                              label: new Date(d.date).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                              }),
+                            }))}
+                          >
                             <defs>
                               {dashboardData.memberNames?.map((name: string, i: number) => (
-                                <linearGradient key={name} id={`teamGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.4} />
-                                  <stop offset="100%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.05} />
+                                <linearGradient
+                                  key={name}
+                                  id={`teamGrad-${i}`}
+                                  x1="0"
+                                  y1="0"
+                                  x2="0"
+                                  y2="1"
+                                >
+                                  <stop
+                                    offset="0%"
+                                    stopColor={COLORS[i % COLORS.length]}
+                                    stopOpacity={0.4}
+                                  />
+                                  <stop
+                                    offset="100%"
+                                    stopColor={COLORS[i % COLORS.length]}
+                                    stopOpacity={0.05}
+                                  />
                                 </linearGradient>
                               ))}
                             </defs>
-                            <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                            <XAxis
+                              dataKey="label"
+                              stroke="hsl(var(--muted-foreground))"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              stroke="hsl(var(--muted-foreground))"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                              allowDecimals={false}
+                            />
                             <Tooltip
                               contentStyle={{
                                 backgroundColor: "hsl(var(--background))",
@@ -483,11 +561,20 @@ export default function TeamPage() {
                       <Input
                         placeholder="Search company or title..."
                         value={appsSearch}
-                        onChange={e => { setAppsSearch(e.target.value); setAppsPage(1) }}
+                        onChange={(e) => {
+                          setAppsSearch(e.target.value)
+                          setAppsPage(1)
+                        }}
                         className="pl-9"
                       />
                     </div>
-                    <Select value={appsMember} onValueChange={v => { setAppsMember(v === "all" ? "" : v); setAppsPage(1) }}>
+                    <Select
+                      value={appsMember}
+                      onValueChange={(v) => {
+                        setAppsMember(v === "all" ? "" : v)
+                        setAppsPage(1)
+                      }}
+                    >
                       <SelectTrigger className="w-[200px]">
                         <SelectValue placeholder="All members" />
                       </SelectTrigger>
@@ -496,12 +583,24 @@ export default function TeamPage() {
                         {selectedTeam.members?.map((m: any) => {
                           const uid = m.userId?._id || m.userId
                           const label = m.userId?.name || m.userId?.email || uid
-                          return <SelectItem key={uid} value={uid}>{label}</SelectItem>
+                          return (
+                            <SelectItem key={uid} value={uid}>
+                              {label}
+                            </SelectItem>
+                          )
                         })}
                       </SelectContent>
                     </Select>
                     {(appsSearch || appsMember) && (
-                      <Button variant="ghost" size="sm" onClick={() => { setAppsSearch(""); setAppsMember(""); setAppsPage(1) }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setAppsSearch("")
+                          setAppsMember("")
+                          setAppsPage(1)
+                        }}
+                      >
                         <X className="mr-1 h-4 w-4" /> Clear
                       </Button>
                     )}
@@ -525,13 +624,18 @@ export default function TeamPage() {
                           [...Array(5)].map((_, i) => (
                             <TableRow key={i}>
                               {[...Array(6)].map((_, j) => (
-                                <TableCell key={j}><div className="h-4 w-full animate-pulse rounded bg-muted" /></TableCell>
+                                <TableCell key={j}>
+                                  <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                                </TableCell>
                               ))}
                             </TableRow>
                           ))
                         ) : teamApps.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                            <TableCell
+                              colSpan={6}
+                              className="h-24 text-center text-muted-foreground"
+                            >
                               No applications found.
                             </TableCell>
                           </TableRow>
@@ -540,16 +644,30 @@ export default function TeamPage() {
                             <TableRow key={app._id}>
                               <TableCell>
                                 <div>
-                                  <p className="text-sm font-medium truncate max-w-[120px]">{app.memberName}</p>
+                                  <p className="text-sm font-medium truncate max-w-[120px]">
+                                    {app.memberName}
+                                  </p>
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm">
-                                {new Date(app.appliedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}
+                                {new Date(app.appliedAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "2-digit",
+                                })}
                               </TableCell>
                               <TableCell className="font-medium">{app.company}</TableCell>
                               <TableCell className="max-w-[200px] truncate">{app.title}</TableCell>
-                              <TableCell><Badge variant="outline" className="text-xs">{app.platform}</Badge></TableCell>
-                              <TableCell><Badge variant="outline" className="text-xs">{app.status}</Badge></TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {app.platform}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-xs">
+                                  {app.status}
+                                </Badge>
+                              </TableCell>
                             </TableRow>
                           ))
                         )}
@@ -564,8 +682,22 @@ export default function TeamPage() {
                         Page {appsPage} of {totalAppsPages} ({teamAppsCount} total)
                       </p>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled={appsPage <= 1} onClick={() => setAppsPage(p => p - 1)}>Previous</Button>
-                        <Button variant="outline" size="sm" disabled={appsPage >= totalAppsPages} onClick={() => setAppsPage(p => p + 1)}>Next</Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={appsPage <= 1}
+                          onClick={() => setAppsPage((p) => p - 1)}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={appsPage >= totalAppsPages}
+                          onClick={() => setAppsPage((p) => p + 1)}
+                        >
+                          Next
+                        </Button>
                       </div>
                     </div>
                   )}

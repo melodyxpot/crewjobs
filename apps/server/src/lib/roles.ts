@@ -1,4 +1,11 @@
-export const USER_ROLES = ["bidder", "caller", "finance", "leader", "moderator", "developer"] as const
+export const USER_ROLES = [
+  "bidder",
+  "caller",
+  "finance",
+  "leader",
+  "moderator",
+  "developer",
+] as const
 export type UserRole = (typeof USER_ROLES)[number]
 export const SIGNUP_ROLES = ["bidder", "caller", "finance", "moderator", "developer"] as const
 export type SignupRole = (typeof SIGNUP_ROLES)[number]
@@ -15,7 +22,11 @@ export interface RoleUser {
   isSuperAdmin?: boolean
 }
 
-export function displayName(user: { username?: string | null; name?: string | null; email?: string | null }) {
+export function displayName(user: {
+  username?: string | null
+  name?: string | null
+  email?: string | null
+}) {
   return user.name?.trim() || user.username?.trim() || user.email || "Unknown"
 }
 

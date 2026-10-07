@@ -30,10 +30,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         setUser(stored)
         // Verify token is still valid in background
-        apiGetMe().then(({ user }) => setUser(user)).catch(() => {
-          removeToken()
-          setUser(null)
-        })
+        apiGetMe()
+          .then(({ user }) => setUser(user))
+          .catch(() => {
+            removeToken()
+            setUser(null)
+          })
       }
     } catch {
       setUser(null)

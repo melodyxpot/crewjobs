@@ -11,14 +11,44 @@
     "build:server": "turbo build --filter=server",
     "build:extension": "turbo build --filter=extension",
     "build:shared": "turbo build --filter=@crewjobs/shared",
-    "lint": "turbo lint",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
+    "prepare": "husky",
     "start": "turbo start --filter=web --filter=server",
     "start:web": "pnpm --filter web start",
     "start:server": "pnpm --filter server start"
   },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx}": [
+      "eslint --fix --max-warnings 0 --no-warn-ignored",
+      "prettier --write"
+    ],
+    "*.{json,css,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "baseline-browser-mapping": "^2.10.12",
-    "turbo": "^2.5.0"
+    "eslint": "9",
+    "eslint-config-next": "16.0.10",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.9",
+    "turbo": "^2.5.0",
+    "typescript": "^5.1.0",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
   },
   "packageManager": "pnpm@9.15.0"
 }

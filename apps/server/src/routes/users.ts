@@ -32,7 +32,8 @@ router.post("/:id/approve", async (req: AuthRequest, res) => {
     }
     const user = await User.findById(req.params.id)
     if (!user) return res.status(404).json({ error: "User not found" })
-    if (user.isSuperAdmin) return res.status(400).json({ error: "The superadmin is already active" })
+    if (user.isSuperAdmin)
+      return res.status(400).json({ error: "The superadmin is already active" })
 
     user.status = "approved"
     await user.save()
@@ -49,8 +50,10 @@ router.post("/:id/reject", async (req: AuthRequest, res) => {
     }
     const user = await User.findById(req.params.id)
     if (!user) return res.status(404).json({ error: "User not found" })
-    if (user.isSuperAdmin) return res.status(400).json({ error: "The superadmin cannot be rejected" })
-    if (user._id.toString() === req.userId) return res.status(400).json({ error: "You cannot reject yourself" })
+    if (user.isSuperAdmin)
+      return res.status(400).json({ error: "The superadmin cannot be rejected" })
+    if (user._id.toString() === req.userId)
+      return res.status(400).json({ error: "You cannot reject yourself" })
 
     user.status = "rejected"
     await user.save()

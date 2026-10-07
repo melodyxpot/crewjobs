@@ -5,7 +5,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --port 3003",
-    "lint": "eslint .",
+    "lint": "pnpm -w exec eslint apps/web --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "start": "next start --port 3003"
   },
   "dependencies": {

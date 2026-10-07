@@ -6,7 +6,7 @@ import { isManager } from "./roles"
 export async function resolveWorkspaceId(
   user: IUser,
   requested?: string | null,
-  options?: { required?: boolean }
+  options?: { required?: boolean },
 ): Promise<{ workspaceId: mongoose.Types.ObjectId | null; error?: string }> {
   if (user.role === "bidder" && !user.isSuperAdmin) {
     const ws = await Workspace.findOne({ bidderIds: user._id }).select("_id")
@@ -24,9 +24,10 @@ export async function resolveWorkspaceId(
     return { workspaceId: ws._id }
   }
 
-  const list = user.role === "caller" && !isManager(user)
-    ? await Workspace.find({ callerIds: user._id }).select("_id")
-    : await Workspace.find().select("_id")
+  const list =
+    user.role === "caller" && !isManager(user)
+      ? await Workspace.find({ callerIds: user._id }).select("_id")
+      : await Workspace.find().select("_id")
 
   if (list.length === 1) return { workspaceId: list[0]._id }
   if (options?.required && list.length > 1) {

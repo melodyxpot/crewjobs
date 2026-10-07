@@ -11,17 +11,20 @@ A modern, feature-rich web application to manage and track your job applications
 ## Features
 
 ### 📊 Application Management
+
 - **Track Applications**: Add and manage all your job applications in one centralized dashboard
 - **Rich Details**: Store company name, job title, position link, platform, status, and notes
 - **Flexible Statuses**: Applied, Interview, Offer, Rejected, Withdrawn, No Response
 - **Multiple Platforms**: Track applications from LinkedIn, Indeed, Glassdoor, company websites, and more
 
 ### 📅 Follow-up Management
+
 - **Auto Follow-up Dates**: Automatically set follow-up dates based on applied date
 - **Overdue Tracking**: Visual alerts for overdue follow-ups with red highlighting
 - **Custom Reminders**: Set custom follow-up dates for each application
 
 ### 🔍 Search & Filter
+
 - **Smart Search**: Search by company name or job title
 - **Status Filter**: Filter applications by their current status
 - **Platform Filter**: View applications by job board platform
@@ -29,23 +32,27 @@ A modern, feature-rich web application to manage and track your job applications
 - **Sorting**: Sort by applied date or company name, ascending or descending
 
 ### 📈 Dashboard Analytics
+
 - **Quick Stats**: View total applications, interviews, and offers at a glance
 - **Status Breakdown**: See distribution of applications across different statuses
 - **Success Metrics**: Track acceptance rate and interview conversion rate
 - **Recent Activity**: Quick view of recent applications and their status
 
 ### ⚡ Bulk Import
+
 - **Quick Paste**: Paste multiple job applications at once
 - **Multiple Formats**: Support for pipe-delimited, tab-separated, or URL-only formats
 - **Data Validation**: Preview and validate data before importing
 - **Error Handling**: Identify and fix invalid entries before bulk insertion
 
 ### 🔐 Authentication
+
 - **Email/Password**: Secure email and password authentication
 - **Google OAuth**: Sign in with your Google account
 - **Session Management**: Secure, persistent sessions with Supabase
 
 ### 🎨 User Experience
+
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 - **Dark Mode**: Built-in dark mode support with theme switching
 - **Real-time Updates**: Table refreshes immediately after adding or editing applications
@@ -54,6 +61,7 @@ A modern, feature-rich web application to manage and track your job applications
 ## Tech Stack
 
 ### Frontend
+
 - **Next.js 16** - React framework with App Router
 - **React 19** - UI library
 - **TypeScript** - Type safety
@@ -64,11 +72,13 @@ A modern, feature-rich web application to manage and track your job applications
 - **Sonner** - Toast notifications
 
 ### Backend & Database
+
 - **Supabase** - Backend-as-a-Service with PostgreSQL
 - **Supabase SSR** - Server-side rendering support
 - **Server Actions** - Next.js server-side functions for data operations
 
 ### Development
+
 - **pnpm** - Package manager
 - **ESLint** - Code linting
 - **Vercel** - Deployment platform
@@ -76,6 +86,7 @@ A modern, feature-rich web application to manage and track your job applications
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18 or higher
 - pnpm package manager
 - Supabase account (free tier available)
@@ -84,19 +95,22 @@ A modern, feature-rich web application to manage and track your job applications
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/crewjobs.git
    cd crewjobs
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Set up environment variables**
-   
+
    Create a `.env.local` file in the root directory:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -115,6 +129,7 @@ A modern, feature-rich web application to manage and track your job applications
    See [Google Auth Setup Guide](docs/GOOGLE_AUTH_SETUP.md) for detailed instructions.
 
 6. **Start development server**
+
    ```bash
    pnpm dev
    ```
@@ -124,6 +139,7 @@ A modern, feature-rich web application to manage and track your job applications
 ## Database Schema
 
 ### job_applications table
+
 ```sql
 CREATE TABLE job_applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -148,6 +164,7 @@ CREATE INDEX idx_job_applications_platform ON job_applications(platform);
 ```
 
 ### settings table
+
 ```sql
 CREATE TABLE settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -231,6 +248,7 @@ crewjobs/
 ### Settings Page
 
 Customize your default preferences:
+
 - **Default Platform**: Pre-selected platform when adding applications
 - **Default Status**: Pre-selected status for new applications
 - **Follow-up Offset**: Days until automatic follow-up date (default: 7)
@@ -251,6 +269,7 @@ Customize your default preferences:
 ### Deploy to Other Platforms
 
 This is a standard Next.js application and can be deployed to:
+
 - Netlify
 - Firebase Hosting
 - Self-hosted servers
@@ -259,17 +278,20 @@ This is a standard Next.js application and can be deployed to:
 ## Development
 
 ### Running Tests
+
 ```bash
 pnpm test
 ```
 
 ### Building for Production
+
 ```bash
 pnpm build
 pnpm start
 ```
 
 ### Code Quality
+
 ```bash
 pnpm lint
 ```
@@ -303,16 +325,19 @@ pnpm lint
 ## Troubleshooting
 
 ### Authentication Issues
+
 - Clear browser cookies and cache
 - Verify Supabase credentials in `.env.local`
 - Check network tab in browser DevTools
 
 ### Data Not Showing
+
 - Ensure Supabase tables are created
 - Check user is authenticated
 - Verify RLS policies allow data access
 
 ### Google OAuth Not Working
+
 - See [Google Auth Setup Guide](docs/GOOGLE_AUTH_SETUP.md)
 - Verify redirect URI matches exactly
 - Check Client ID and Secret in Supabase
@@ -360,4 +385,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ by crewjobs**
 
-*Track your journey to the perfect job.*
+_Track your journey to the perfect job._

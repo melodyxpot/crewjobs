@@ -31,9 +31,12 @@ const userSchema = new Schema<IUser>(
     },
     isSuperAdmin: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
-userSchema.index({ isSuperAdmin: 1 }, { unique: true, partialFilterExpression: { isSuperAdmin: true } })
+userSchema.index(
+  { isSuperAdmin: 1 },
+  { unique: true, partialFilterExpression: { isSuperAdmin: true } },
+)
 
 export const User = mongoose.model<IUser>("User", userSchema)

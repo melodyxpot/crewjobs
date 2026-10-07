@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -80,7 +86,8 @@ export default function SignUpPage() {
             <CardHeader>
               <CardTitle className="text-2xl">Create an account</CardTitle>
               <CardDescription>
-                Choose your role after your email, username, and password. A leader approves the account before you can sign in.
+                Choose your role after your email, username, and password. A leader approves the
+                account before you can sign in.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -133,7 +140,10 @@ export default function SignUpPage() {
                   </div>
                   <div className="grid gap-2">
                     <Label>Role</Label>
-                    <Select value={role || undefined} onValueChange={(value) => setRole(value as SignupRole)}>
+                    <Select
+                      value={role || undefined}
+                      onValueChange={(value) => setRole(value as SignupRole)}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
@@ -146,7 +156,8 @@ export default function SignUpPage() {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Leader is not available here. The first account becomes the superadmin. Everyone else waits for approval.
+                      Leader is not available here. The first account becomes the superadmin.
+                      Everyone else waits for approval.
                     </p>
                   </div>
                   {error && <p className="text-sm text-destructive">{error}</p>}
@@ -156,7 +167,10 @@ export default function SignUpPage() {
                 </div>
                 <div className="mt-4 text-center text-sm">
                   Already have an account?{" "}
-                  <Link href="/auth/login" className="text-primary underline underline-offset-4 hover:text-primary/80">
+                  <Link
+                    href="/auth/login"
+                    className="text-primary underline underline-offset-4 hover:text-primary/80"
+                  >
                     Sign in
                   </Link>
                 </div>

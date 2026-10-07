@@ -20,7 +20,9 @@ function normalizeUsername(value: string) {
 
 router.post("/register", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase()
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase()
     const password = String(req.body.password || "")
     const username = normalizeUsername(String(req.body.username || ""))
     const role = req.body.role
@@ -32,10 +34,14 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" })
     }
     if (!/^[a-z0-9_]{3,30}$/.test(username)) {
-      return res.status(400).json({ error: "Username must be 3-30 characters and use letters, numbers, or underscores" })
+      return res.status(400).json({
+        error: "Username must be 3-30 characters and use letters, numbers, or underscores",
+      })
     }
     if (!SIGNUP_ROLES.includes(role)) {
-      return res.status(400).json({ error: "Choose a valid role. Leader accounts are assigned by a superadmin." })
+      return res
+        .status(400)
+        .json({ error: "Choose a valid role. Leader accounts are assigned by a superadmin." })
     }
 
     const existingEmail = await User.findOne({ email })
@@ -83,7 +89,9 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase()
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase()
     const password = String(req.body.password || "")
 
     const user = await User.findOne({ email })

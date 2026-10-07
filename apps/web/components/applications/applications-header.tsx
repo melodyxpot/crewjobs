@@ -59,7 +59,11 @@ export function ApplicationsHeader({ onAdd, onQuickPaste }: ApplicationsHeaderPr
           Quick Paste
         </Button>
         <Button variant="outline" onClick={handleExport} disabled={exporting}>
-          {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+          {exporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
           Export
         </Button>
       </div>

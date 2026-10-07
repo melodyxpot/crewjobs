@@ -1,7 +1,18 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { MessageCircle, X, Send, Loader2, Maximize2, Minimize2, Paperclip, FileText, ImageIcon, Copy, Check } from "lucide-react"
+import {
+  MessageCircle,
+  X,
+  Send,
+  Maximize2,
+  Minimize2,
+  Paperclip,
+  FileText,
+  ImageIcon,
+  Copy,
+  Check,
+} from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { apiChat } from "@/lib/api"
@@ -33,11 +44,24 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
     <div className="group relative my-2 rounded-lg bg-zinc-900 text-zinc-100">
       <div className="flex items-center justify-between px-4 py-1.5 text-xs text-zinc-400">
         <span>{lang}</span>
-        <button onClick={handleCopy} className="flex items-center gap-1 hover:text-zinc-200 transition-colors">
-          {copied ? <><Check className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1 hover:text-zinc-200 transition-colors"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3" /> Copied
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3" /> Copy
+            </>
+          )}
         </button>
       </div>
-      <pre className="overflow-x-auto px-4 pb-3 text-sm leading-relaxed"><code>{code}</code></pre>
+      <pre className="overflow-x-auto px-4 pb-3 text-sm leading-relaxed">
+        <code>{code}</code>
+      </pre>
     </div>
   )
 }
@@ -57,17 +81,36 @@ function MarkdownContent({ content }: { content: string }) {
         li: ({ children }) => <li className="leading-relaxed">{children}</li>,
         strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
         em: ({ children }) => <em className="italic">{children}</em>,
-        a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:opacity-80">{children}</a>,
-        blockquote: ({ children }) => <blockquote className="my-2 border-l-2 border-muted-foreground/30 pl-3 italic text-muted-foreground">{children}</blockquote>,
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-2 hover:opacity-80"
+          >
+            {children}
+          </a>
+        ),
+        blockquote: ({ children }) => (
+          <blockquote className="my-2 border-l-2 border-muted-foreground/30 pl-3 italic text-muted-foreground">
+            {children}
+          </blockquote>
+        ),
         hr: () => <hr className="my-3 border-border" />,
-        table: ({ children }) => <div className="my-2 overflow-x-auto"><table className="w-full border-collapse text-sm">{children}</table></div>,
+        table: ({ children }) => (
+          <div className="my-2 overflow-x-auto">
+            <table className="w-full border-collapse text-sm">{children}</table>
+          </div>
+        ),
         thead: ({ children }) => <thead className="border-b border-border">{children}</thead>,
         th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold">{children}</th>,
         td: ({ children }) => <td className="border-t border-border px-3 py-1.5">{children}</td>,
-        code: ({ className, children, ...props }) => {
+        code: ({ className, children }) => {
           const isInline = !className
           if (isInline) {
-            return <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">{children}</code>
+            return (
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">{children}</code>
+            )
           }
           return <CodeBlock className={className}>{children}</CodeBlock>
         },
@@ -113,7 +156,15 @@ export function Chatbot() {
   }, [input, autoResize])
 
   function addFiles(files: FileList | File[]) {
-    const allowed = ["application/pdf", "image/png", "image/jpeg", "image/webp", "image/gif", "text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+    const allowed = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "image/gif",
+      "text/plain",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]
     const newAttachments: Attachment[] = []
     for (const file of Array.from(files)) {
       if (!allowed.includes(file.type)) continue
@@ -169,19 +220,27 @@ export function Chatbot() {
     }
     setMessages((prev) => [...prev, userMessage])
     const filesToSend = attachments.map((a) => a.file)
-    attachments.forEach((a) => { if (a.preview) URL.revokeObjectURL(a.preview) })
+    attachments.forEach((a) => {
+      if (a.preview) URL.revokeObjectURL(a.preview)
+    })
     setAttachments([])
     setInput("")
     setLoading(true)
 
     try {
       const result = await apiChat(trimmed, filesToSend.length > 0 ? filesToSend : undefined)
-      setMessages((prev) => [...prev, { role: "assistant", content: result.reply || "No response" }])
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: result.reply || "No response" },
+      ])
     } catch (error) {
-      setMessages((prev) => [...prev, {
-        role: "assistant",
-        content: error instanceof Error ? error.message : "Something went wrong",
-      }])
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: error instanceof Error ? error.message : "Something went wrong",
+        },
+      ])
     } finally {
       setLoading(false)
     }
@@ -203,7 +262,10 @@ export function Chatbot() {
       {isOpen && (
         <div
           className={panelClasses}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragOver(true)
+          }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
         >
@@ -224,7 +286,10 @@ export function Chatbot() {
                 {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </button>
               <button
-                onClick={() => { setIsOpen(false); setExpanded(false) }}
+                onClick={() => {
+                  setIsOpen(false)
+                  setExpanded(false)
+                }}
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -239,27 +304,42 @@ export function Chatbot() {
                 <MessageCircle className="h-10 w-10 opacity-30" />
                 <p className="text-sm">Ask me anything about your career!</p>
                 <div className="flex flex-wrap justify-center gap-2 mt-2">
-                  {["Help me write a cover letter", "Review my resume", "Interview tips"].map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => { setInput(s); textareaRef.current?.focus() }}
-                      className="rounded-full border px-3 py-1.5 text-xs hover:bg-muted transition-colors"
-                    >
-                      {s}
-                    </button>
-                  ))}
+                  {["Help me write a cover letter", "Review my resume", "Interview tips"].map(
+                    (s) => (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          setInput(s)
+                          textareaRef.current?.focus()
+                        }}
+                        className="rounded-full border px-3 py-1.5 text-xs hover:bg-muted transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                key={i}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
                 {msg.role === "user" ? (
                   <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground">
                     {msg.attachments && msg.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-1.5">
                         {msg.attachments.map((a, j) => (
-                          <span key={j} className="inline-flex items-center gap-1 rounded-md bg-black/10 px-2 py-0.5 text-xs">
-                            {a.type.startsWith("image/") ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                          <span
+                            key={j}
+                            className="inline-flex items-center gap-1 rounded-md bg-black/10 px-2 py-0.5 text-xs"
+                          >
+                            {a.type.startsWith("image/") ? (
+                              <ImageIcon className="h-3 w-3" />
+                            ) : (
+                              <FileText className="h-3 w-3" />
+                            )}
                             {a.name}
                           </span>
                         ))}
@@ -303,11 +383,19 @@ export function Chatbot() {
                 {attachments.map((att, i) => (
                   <div key={i} className="relative group">
                     {att.preview ? (
-                      <img src={att.preview} alt={att.file.name} className="h-14 w-14 rounded-lg object-cover border" />
+                      // Local blob preview. next/image does not optimize these URLs.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={att.preview}
+                        alt={att.file.name}
+                        className="h-14 w-14 rounded-lg object-cover border"
+                      />
                     ) : (
                       <div className="flex h-14 items-center gap-1.5 rounded-lg border bg-muted px-3">
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-xs text-foreground max-w-[100px] truncate">{att.file.name}</span>
+                        <span className="text-xs text-foreground max-w-[100px] truncate">
+                          {att.file.name}
+                        </span>
                       </div>
                     )}
                     <button
@@ -336,7 +424,10 @@ export function Chatbot() {
                 multiple
                 accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.docx"
                 className="hidden"
-                onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = "" }}
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files)
+                  e.target.value = ""
+                }}
               />
 
               <textarea

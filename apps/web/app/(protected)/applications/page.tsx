@@ -18,7 +18,9 @@ export default function ApplicationsPage() {
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
-    apiGetSettings().then(({ settings }) => setSettings(settings)).catch(() => {})
+    apiGetSettings()
+      .then(({ settings }) => setSettings(settings))
+      .catch(() => {})
   }, [])
 
   const page = Number(searchParams.get("page")) || 1
@@ -32,9 +34,18 @@ export default function ApplicationsPage() {
   const bidderId = searchParams.get("bidder") || "all"
   const workspaceId = searchParams.get("workspace") || "all"
 
-  const openAdd = useCallback(() => { setEditId(undefined); setDrawerOpen(true) }, [])
-  const openEdit = useCallback((id: string) => { setEditId(id); setDrawerOpen(true) }, [])
-  const closeDrawer = useCallback(() => { setDrawerOpen(false); setEditId(undefined) }, [])
+  const openAdd = useCallback(() => {
+    setEditId(undefined)
+    setDrawerOpen(true)
+  }, [])
+  const openEdit = useCallback((id: string) => {
+    setEditId(id)
+    setDrawerOpen(true)
+  }, [])
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false)
+    setEditId(undefined)
+  }, [])
   const openQuickpaste = useCallback(() => setQuickpasteOpen(true), [])
   const closeQuickpaste = useCallback(() => setQuickpasteOpen(false), [])
   const onSaved = useCallback(() => setRefreshKey((k) => k + 1), [])
@@ -57,8 +68,19 @@ export default function ApplicationsPage() {
         onEdit={openEdit}
         refreshKey={refreshKey}
       />
-      <ApplicationDrawer open={drawerOpen || !!editId} editId={editId} settings={settings} onClose={closeDrawer} onSaved={onSaved} />
-      <QuickPasteModal open={quickpasteOpen} settings={settings} onClose={closeQuickpaste} onSaved={onSaved} />
+      <ApplicationDrawer
+        open={drawerOpen || !!editId}
+        editId={editId}
+        settings={settings}
+        onClose={closeDrawer}
+        onSaved={onSaved}
+      />
+      <QuickPasteModal
+        open={quickpasteOpen}
+        settings={settings}
+        onClose={closeQuickpaste}
+        onSaved={onSaved}
+      />
     </div>
   )
 }

@@ -16,7 +16,7 @@ const conversationSchema = new Schema<IConversation>(
     lastMessageAt: { type: Date, default: null },
     lastSenderId: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
-  { timestamps: true }
+  { timestamps: true },
 )
 
 conversationSchema.index({ participants: 1 })

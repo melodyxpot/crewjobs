@@ -37,9 +37,7 @@ router.post("/", async (req: AuthRequest, res) => {
       members: [{ userId: req.userId, role: "leader", joinedAt: new Date() }],
     })
 
-    const populated = await Team.findById(team._id)
-      .populate("members.userId", "email name")
-      .lean()
+    const populated = await Team.findById(team._id).populate("members.userId", "email name").lean()
 
     res.status(201).json({ team: populated })
   } catch (error) {
@@ -73,7 +71,7 @@ router.put("/:id", async (req: AuthRequest, res) => {
     const team = await Team.findById(req.params.id)
     if (!team) return res.status(404).json({ error: "Team not found" })
 
-    const member = team.members.find(m => m.userId.toString() === req.userId)
+    const member = team.members.find((m) => m.userId.toString() === req.userId)
     if (!member || member.role !== "leader") {
       return res.status(403).json({ error: "Only leaders can update the team" })
     }
@@ -81,9 +79,7 @@ router.put("/:id", async (req: AuthRequest, res) => {
     if (req.body.name) team.name = req.body.name.trim()
     await team.save()
 
-    const populated = await Team.findById(team._id)
-      .populate("members.userId", "email name")
-      .lean()
+    const populated = await Team.findById(team._id).populate("members.userId", "email name").lean()
 
     res.json({ team: populated })
   } catch (error) {
@@ -97,7 +93,7 @@ router.delete("/:id", async (req: AuthRequest, res) => {
     const team = await Team.findById(req.params.id)
     if (!team) return res.status(404).json({ error: "Team not found" })
 
-    const member = team.members.find(m => m.userId.toString() === req.userId)
+    const member = team.members.find((m) => m.userId.toString() === req.userId)
     if (!member || member.role !== "leader") {
       return res.status(403).json({ error: "Only leaders can delete the team" })
     }
@@ -118,7 +114,7 @@ router.post("/:id/members", async (req: AuthRequest, res) => {
     const team = await Team.findById(req.params.id)
     if (!team) return res.status(404).json({ error: "Team not found" })
 
-    const requester = team.members.find(m => m.userId.toString() === req.userId)
+    const requester = team.members.find((m) => m.userId.toString() === req.userId)
     if (!requester || requester.role !== "leader") {
       return res.status(403).json({ error: "Only leaders can add members" })
     }
@@ -126,7 +122,7 @@ router.post("/:id/members", async (req: AuthRequest, res) => {
     const user = await User.findOne({ email: email.toLowerCase() })
     if (!user) return res.status(404).json({ error: "User not found with that email" })
 
-    const existing = team.members.find(m => m.userId.toString() === user._id.toString())
+    const existing = team.members.find((m) => m.userId.toString() === user._id.toString())
     if (existing) return res.status(400).json({ error: "User is already a member" })
 
     team.members.push({
@@ -136,9 +132,7 @@ router.post("/:id/members", async (req: AuthRequest, res) => {
     })
     await team.save()
 
-    const populated = await Team.findById(team._id)
-      .populate("members.userId", "email name")
-      .lean()
+    const populated = await Team.findById(team._id).populate("members.userId", "email name").lean()
 
     res.json({ team: populated })
   } catch (error) {
@@ -157,20 +151,18 @@ router.put("/:id/members/:userId/role", async (req: AuthRequest, res) => {
     const team = await Team.findById(req.params.id)
     if (!team) return res.status(404).json({ error: "Team not found" })
 
-    const requester = team.members.find(m => m.userId.toString() === req.userId)
+    const requester = team.members.find((m) => m.userId.toString() === req.userId)
     if (!requester || requester.role !== "leader") {
       return res.status(403).json({ error: "Only leaders can change roles" })
     }
 
-    const member = team.members.find(m => m.userId.toString() === req.params.userId)
+    const member = team.members.find((m) => m.userId.toString() === req.params.userId)
     if (!member) return res.status(404).json({ error: "Member not found" })
 
     member.role = role
     await team.save()
 
-    const populated = await Team.findById(team._id)
-      .populate("members.userId", "email name")
-      .lean()
+    const populated = await Team.findById(team._id).populate("members.userId", "email name").lean()
 
     res.json({ team: populated })
   } catch (error) {
@@ -184,7 +176,7 @@ router.delete("/:id/members/:userId", async (req: AuthRequest, res) => {
     const team = await Team.findById(req.params.id)
     if (!team) return res.status(404).json({ error: "Team not found" })
 
-    const requester = team.members.find(m => m.userId.toString() === req.userId)
+    const requester = team.members.find((m) => m.userId.toString() === req.userId)
     if (!requester || requester.role !== "leader") {
       return res.status(403).json({ error: "Only leaders can remove members" })
     }
@@ -193,12 +185,10 @@ router.delete("/:id/members/:userId", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Cannot remove yourself" })
     }
 
-    team.members = team.members.filter(m => m.userId.toString() !== req.params.userId) as any
+    team.members = team.members.filter((m) => m.userId.toString() !== req.params.userId) as any
     await team.save()
 
-    const populated = await Team.findById(team._id)
-      .populate("members.userId", "email name")
-      .lean()
+    const populated = await Team.findById(team._id).populate("members.userId", "email name").lean()
 
     res.json({ team: populated })
   } catch (error) {
@@ -212,17 +202,21 @@ router.post("/:id/leave", async (req: AuthRequest, res) => {
     const team = await Team.findById(req.params.id)
     if (!team) return res.status(404).json({ error: "Team not found" })
 
-    const member = team.members.find(m => m.userId.toString() === req.userId)
+    const member = team.members.find((m) => m.userId.toString() === req.userId)
     if (!member) return res.status(400).json({ error: "Not a member" })
 
     if (member.role === "leader") {
-      const otherLeaders = team.members.filter(m => m.role === "leader" && m.userId.toString() !== req.userId)
+      const otherLeaders = team.members.filter(
+        (m) => m.role === "leader" && m.userId.toString() !== req.userId,
+      )
       if (otherLeaders.length === 0) {
-        return res.status(400).json({ error: "Cannot leave — you are the only leader. Promote someone else first." })
+        return res
+          .status(400)
+          .json({ error: "Cannot leave — you are the only leader. Promote someone else first." })
       }
     }
 
-    team.members = team.members.filter(m => m.userId.toString() !== req.userId) as any
+    team.members = team.members.filter((m) => m.userId.toString() !== req.userId) as any
     await team.save()
     res.json({ success: true })
   } catch (error) {
@@ -236,7 +230,9 @@ router.get("/:id/dashboard", async (req: AuthRequest, res) => {
     const team = await Team.findOne({
       _id: req.params.id,
       "members.userId": req.userId,
-    }).populate("members.userId", "email name").lean()
+    })
+      .populate("members.userId", "email name")
+      .lean()
 
     if (!team) return res.status(404).json({ error: "Team not found" })
 
@@ -259,7 +255,9 @@ router.get("/:id/dashboard", async (req: AuthRequest, res) => {
     const applications = await JobApplication.find({
       userId: { $in: memberIds },
       appliedAt: { $gte: startDate },
-    }).select("userId appliedAt").lean()
+    })
+      .select("userId appliedAt")
+      .lean()
 
     // Build per-member chart data
     const memberChartData: Record<string, Record<string, number>> = {}
@@ -295,7 +293,7 @@ router.get("/:id/dashboard", async (req: AuthRequest, res) => {
       dates.push(toDateStr(d, tz))
     }
 
-    const chartData = dates.map(date => {
+    const chartData = dates.map((date) => {
       const entry: any = { date }
       for (const uid of Object.keys(memberChartData)) {
         const displayName = memberInfo[uid]?.name || memberInfo[uid]?.email || uid
@@ -312,7 +310,9 @@ router.get("/:id/dashboard", async (req: AuthRequest, res) => {
     const monthlyApps = await JobApplication.find({
       userId: { $in: memberIds },
       appliedAt: { $gte: startOfMonth },
-    }).select("userId").lean()
+    })
+      .select("userId")
+      .lean()
 
     const monthlyCounts: Record<string, number> = {}
     for (const uid of Object.keys(memberInfo)) {
@@ -327,7 +327,10 @@ router.get("/:id/dashboard", async (req: AuthRequest, res) => {
       userId: uid,
       email: info.email,
       name: info.name,
-      role: team.members.find((m: any) => ((m.userId as any)?._id?.toString() || (m.userId as any)?.toString()) === uid)?.role || "member",
+      role:
+        team.members.find(
+          (m: any) => ((m.userId as any)?._id?.toString() || (m.userId as any)?.toString()) === uid,
+        )?.role || "member",
       monthlyCount: monthlyCounts[uid] || 0,
     }))
 
@@ -335,7 +338,7 @@ router.get("/:id/dashboard", async (req: AuthRequest, res) => {
       team: { _id: team._id, name: team.name },
       chartData,
       memberStats,
-      memberNames: Object.values(memberInfo).map(m => m.name || m.email),
+      memberNames: Object.values(memberInfo).map((m) => m.name || m.email),
     })
   } catch (error) {
     console.error("Team dashboard error:", error)
@@ -349,7 +352,9 @@ router.get("/:id/applications", async (req: AuthRequest, res) => {
     const team = await Team.findOne({
       _id: req.params.id,
       "members.userId": req.userId,
-    }).populate("members.userId", "email name").lean()
+    })
+      .populate("members.userId", "email name")
+      .lean()
 
     if (!team) return res.status(404).json({ error: "Team not found" })
 
@@ -387,7 +392,12 @@ router.get("/:id/applications", async (req: AuthRequest, res) => {
     const sort: any = { [sortBy]: sortOrder === "asc" ? 1 : -1 }
 
     const [data, count] = await Promise.all([
-      JobApplication.find(filter).sort(sort).skip(skip).limit(size).populate("userId", "email name").lean(),
+      JobApplication.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(size)
+        .populate("userId", "email name")
+        .lean(),
       JobApplication.countDocuments(filter),
     ])
 
