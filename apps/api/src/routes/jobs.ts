@@ -1,9 +1,19 @@
+import { randomUUID } from "node:crypto"
 import { Router } from "express"
 import mongoose from "mongoose"
 import { authenticate, AuthRequest } from "../middleware/auth"
-import { ScrapedJob } from "../models/ScrapedJob"
+import { JOB_REGIONS, SCRAPE_REGIONS, SCRAPED_JOB_SOURCES, ScrapedJob } from "../models/ScrapedJob"
+import type { ScrapeRegion } from "../models/ScrapedJob"
+import { Settings } from "../models/Settings"
 import { User } from "../models/User"
 import { Workspace } from "../models/Workspace"
+import {
+  isScraperSourceId,
+  sourceLabel,
+  sourceReady,
+  SCRAPER_CATALOG,
+} from "../lib/job-scraper/catalog"
+import { scrapeSources } from "../lib/job-scraper/run"
 import { displayName, isManager, isRemoteWorkLocation } from "../lib/roles"
 import { saveRemoteListing } from "../lib/remote-job"
 import { resolveWorkspaceId, workspacesForUser } from "../lib/workspace-scope"
@@ -35,19 +45,40 @@ router.get("/", async (req: AuthRequest, res) => {
       workspaceId,
       assignedTo,
       status,
+      region,
+      source,
     } = req.query as Record<string, string>
     const filter: any = await visibleJobFilter(req)
 
     if (workspaceId && workspaceId !== "all") {
-      const workspaces = await workspacesForUser(req.user!)
-      const allowed =
-        isManager(req.user!) ||
-        req.user!.role === "finance" ||
-        req.user!.role === "developer" ||
-        workspaces.some((workspace) => workspace._id.toString() === workspaceId)
-      if (!allowed) return res.status(403).json({ error: "You cannot view that workspace" })
-      filter.workspaceId = workspaceId
+      if (workspaceId === "unassigned") {
+        const seesPool =
+          isManager(req.user!) || req.user!.role === "finance" || req.user!.role === "developer"
+        if (!seesPool) return res.status(403).json({ error: "You cannot view that workspace" })
+        filter.workspaceId = null
+      } else {
+        const workspaces = await workspacesForUser(req.user!)
+        const allowed =
+          isManager(req.user!) ||
+          req.user!.role === "finance" ||
+          req.user!.role === "developer" ||
+          workspaces.some((workspace) => workspace._id.toString() === workspaceId)
+        if (!allowed) return res.status(403).json({ error: "You cannot view that workspace" })
+        filter.workspaceId = workspaceId
+      }
       delete filter.$or
+    }
+    if (region && region !== "all") {
+      if (!JOB_REGIONS.includes(region as (typeof JOB_REGIONS)[number])) {
+        return res.status(400).json({ error: "Unknown region" })
+      }
+      filter.region = region
+    }
+    if (source && source !== "all") {
+      if (!SCRAPED_JOB_SOURCES.includes(source as (typeof SCRAPED_JOB_SOURCES)[number])) {
+        return res.status(400).json({ error: "Unknown source" })
+      }
+      filter.source = source
     }
     if (assignedTo && assignedTo !== "all") {
       filter.assignedTo = assignedTo === "unassigned" ? null : assignedTo
@@ -153,6 +184,176 @@ router.post("/", async (req: AuthRequest, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: "Failed to save job" })
+  }
+})
+
+router.get("/sources", async (req: AuthRequest, res) => {
+  if (!isManager(req.user!)) {
+    return res.status(403).json({ error: "Only a leader or moderator can scrape jobs" })
+  }
+  res.json({
+    sources: SCRAPER_CATALOG.map((source) => ({
+      ...source,
+      ready: sourceReady(source.id),
+    })),
+  })
+})
+
+router.post("/scrape", async (req: AuthRequest, res) => {
+  try {
+    if (!isManager(req.user!)) {
+      return res.status(403).json({ error: "Only a leader or moderator can scrape jobs" })
+    }
+    const regions = Array.isArray(req.body?.regions) ? req.body.regions : []
+    const uniqueRegions = [
+      ...new Set(regions.filter((region: unknown) => typeof region === "string")),
+    ]
+    if (
+      uniqueRegions.length === 0 ||
+      uniqueRegions.some((region) => !SCRAPE_REGIONS.includes(region as ScrapeRegion))
+    ) {
+      return res.status(400).json({ error: "Choose at least one region" })
+    }
+
+    const settings = await Settings.findOne({ userId: req.userId })
+    const selected = (
+      settings?.scraperSources?.length ? settings.scraperSources : ["public"]
+    ).filter(isScraperSourceId)
+    const ready = selected.filter((id) => sourceReady(id))
+    if (ready.length === 0) {
+      return res.status(400).json({
+        error: "No selected job source is ready. Turn on Public remote boards or add an API key.",
+      })
+    }
+
+    const harvested = await scrapeSources(uniqueRegions as ScrapeRegion[], ready)
+    const failedSources = [
+      ...selected
+        .filter((id) => !sourceReady(id))
+        .map((id) => ({ id, label: sourceLabel(id), error: "API key is not configured" })),
+      ...harvested.failedSources,
+    ]
+    const batchId = randomUUID()
+    const createdIds: string[] = []
+    let duplicates = harvested.duplicates
+
+    for (const listing of harvested.listings) {
+      if (listing.link) {
+        const existing = await ScrapedJob.findOne({ link: listing.link }).select("_id")
+        if (existing) {
+          duplicates += 1
+          continue
+        }
+      }
+      const saved = await saveRemoteListing({
+        title: listing.title,
+        company: listing.company,
+        link: listing.link,
+        platform: listing.platform,
+        location: listing.location,
+        workspaceId: null,
+        userId: req.userId!,
+        bidderName: displayName(req.user!),
+        mode: "save",
+        region: listing.region,
+        source: listing.source,
+        scrapeBatchId: batchId,
+      })
+      if (saved.created) createdIds.push(saved.job._id.toString())
+      else duplicates += 1
+    }
+
+    res.json({
+      created: createdIds.length,
+      duplicates,
+      rejected: harvested.rejected,
+      failedSources,
+      batchId,
+      createdIds,
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to scrape jobs" })
+  }
+})
+
+router.post("/assign", async (req: AuthRequest, res) => {
+  try {
+    if (!isManager(req.user!)) {
+      return res.status(403).json({ error: "Only a leader or moderator can assign jobs" })
+    }
+    const jobIds = [
+      ...new Set(
+        (Array.isArray(req.body?.jobIds) ? req.body.jobIds : []).filter(
+          (id: unknown): id is string => typeof id === "string",
+        ),
+      ),
+    ]
+    const workspaceIds = [
+      ...new Set(
+        (Array.isArray(req.body?.workspaceIds) ? req.body.workspaceIds : []).filter(
+          (id: unknown): id is string => typeof id === "string",
+        ),
+      ),
+    ]
+    if (jobIds.length === 0 || workspaceIds.length === 0) {
+      return res.status(400).json({ error: "Choose jobs and at least one workspace" })
+    }
+    if (jobIds.length > 300) return res.status(400).json({ error: "Select 300 jobs or fewer" })
+    if (
+      jobIds.some((id) => !mongoose.isValidObjectId(id)) ||
+      workspaceIds.some((id) => !mongoose.isValidObjectId(id))
+    ) {
+      return res.status(400).json({ error: "Job or workspace not found" })
+    }
+
+    const workspaces = await Workspace.find({ _id: { $in: workspaceIds } })
+    if (workspaces.length !== workspaceIds.length) {
+      return res.status(400).json({ error: "Workspace not found" })
+    }
+
+    let created = 0
+    let skipped = 0
+    let removed = 0
+    for (const jobId of jobIds) {
+      const job = await ScrapedJob.findById(jobId)
+      if (!job) {
+        skipped += 1
+        continue
+      }
+      let copied = 0
+      for (const workspace of workspaces) {
+        const saved = await saveRemoteListing({
+          title: job.title,
+          company: job.company,
+          link: job.link,
+          platform: job.platform,
+          location: job.location,
+          jobType: job.jobType,
+          notes: job.notes,
+          workspaceId: workspace._id,
+          userId: req.userId!,
+          bidderName: displayName(req.user!),
+          mode: "save",
+          region: job.region,
+          source: job.source,
+          scrapeBatchId: job.scrapeBatchId,
+        })
+        if (saved.created) {
+          created += 1
+          copied += 1
+        } else skipped += 1
+      }
+      if (!job.workspaceId && copied > 0) {
+        await ScrapedJob.findByIdAndDelete(job._id)
+        removed += 1
+      }
+    }
+
+    res.json({ created, skipped, removed })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to assign jobs" })
   }
 })
 

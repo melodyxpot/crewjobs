@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,12 +15,21 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { apiUpdateSettings } from "@/lib/api"
+import { apiGetJobSources, apiUpdateSettings, type ScraperSourceStatus } from "@/lib/api"
 import { settingsSchema, type SettingsFormData } from "@/lib/validation"
 import type { Settings } from "@/lib/types"
 import { DEFAULT_STATUSES, DEFAULT_PLATFORMS, LOCATIONS, WORK_LOCATIONS } from "@/lib/types"
 import { toast } from "sonner"
 import { Loader2, X, Plus } from "lucide-react"
+
+const SCRAPER_IDS = ["public", "adzuna", "jsearch", "themuse"] as const
+
+function savedScraperSources(values?: string[]) {
+  const chosen = (values || []).filter((value): value is (typeof SCRAPER_IDS)[number] =>
+    (SCRAPER_IDS as readonly string[]).includes(value),
+  )
+  return chosen.length > 0 ? chosen : (["public"] as (typeof SCRAPER_IDS)[number][])
+}
 
 interface SettingsFormProps {
   settings: Settings | null
@@ -49,8 +58,47 @@ export function SettingsForm({ settings }: SettingsFormProps) {
       workLocationOptions: settings?.workLocationOptions || WORK_LOCATIONS,
       defaultLocation: settings?.defaultLocation || LOCATIONS[0],
       defaultWorkLocation: settings?.defaultWorkLocation || WORK_LOCATIONS[0],
+      scraperSources: savedScraperSources(settings?.scraperSources),
     },
   })
+  const [sourceCatalog, setSourceCatalog] = useState<ScraperSourceStatus[]>([])
+
+  useEffect(() => {
+    apiGetJobSources()
+      .then(({ sources }) => setSourceCatalog(sources))
+      .catch(() =>
+        setSourceCatalog([
+          {
+            id: "public",
+            label: "Public remote boards",
+            description: "Remote OK, Remotive, Arbeitnow, and Jobicy. No API key.",
+            env: [],
+            ready: true,
+          },
+          {
+            id: "adzuna",
+            label: "Adzuna",
+            description: "Remote developer listings from Adzuna.",
+            env: ["ADZUNA_APP_ID", "ADZUNA_APP_KEY"],
+            ready: false,
+          },
+          {
+            id: "jsearch",
+            label: "JSearch",
+            description: "Broader listings from Indeed, LinkedIn, and other boards via JSearch.",
+            env: ["JSEARCH_API_KEY"],
+            ready: false,
+          },
+          {
+            id: "themuse",
+            label: "The Muse",
+            description: "Broader coverage from The Muse software engineering listings.",
+            env: ["THEMUSE_API_KEY"],
+            ready: false,
+          },
+        ]),
+      )
+  }, [])
 
   const platformOptions = watch("platformOptions")
   const locationOptions = watch("locationOptions")
@@ -60,6 +108,8 @@ export function SettingsForm({ settings }: SettingsFormProps) {
   const followUpOffsetDays = watch("followUpOffsetDays")
   const defaultLocation = watch("defaultLocation")
   const defaultWorkLocation = watch("defaultWorkLocation")
+  const scraperSources = watch("scraperSources") || ["public"]
+  const savedSources = savedScraperSources(settings?.scraperSources)
 
   const isFormChanged =
     defaultPlatform !== (settings?.defaultPlatform || "LinkedIn") ||
@@ -71,7 +121,20 @@ export function SettingsForm({ settings }: SettingsFormProps) {
       JSON.stringify(settings?.platformOptions || DEFAULT_PLATFORMS) ||
     JSON.stringify(locationOptions) !== JSON.stringify(settings?.locationOptions || LOCATIONS) ||
     JSON.stringify(workLocationOptions) !==
-      JSON.stringify(settings?.workLocationOptions || WORK_LOCATIONS)
+      JSON.stringify(settings?.workLocationOptions || WORK_LOCATIONS) ||
+    JSON.stringify([...scraperSources].sort()) !== JSON.stringify([...savedSources].sort())
+
+  const toggleSource = (id: ScraperSourceStatus["id"], ready: boolean) => {
+    if (!ready) return
+    const next = scraperSources.includes(id)
+      ? scraperSources.filter((source) => source !== id)
+      : [...scraperSources, id]
+    if (next.length === 0) {
+      toast.error("Choose at least one job source")
+      return
+    }
+    setValue("scraperSources", next)
+  }
 
   const addPlatform = () => {
     if (newPlatform.trim() && !platformOptions.includes(newPlatform.trim())) {
@@ -224,6 +287,51 @@ export function SettingsForm({ settings }: SettingsFormProps) {
               </Select>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Job scraper</CardTitle>
+          <CardDescription>
+            Choose which sources to search when you scrape remote developer jobs. API keys stay in
+            the API env file.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {sourceCatalog.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Loading sources...</p>
+          ) : (
+            sourceCatalog.map((source) => {
+              const checked = scraperSources.includes(source.id)
+              return (
+                <label
+                  key={source.id}
+                  className={`flex items-start gap-3 rounded-lg border p-3 ${source.ready ? "cursor-pointer" : "opacity-70"}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-primary"
+                    checked={checked}
+                    disabled={!source.ready}
+                    onChange={() => toggleSource(source.id, source.ready)}
+                  />
+                  <span className="grid gap-1">
+                    <span className="font-medium">{source.label}</span>
+                    <span className="text-sm text-muted-foreground">{source.description}</span>
+                    {!source.ready && (
+                      <span className="text-xs text-muted-foreground">
+                        Add {source.env.join(" and ")} to the API env file
+                      </span>
+                    )}
+                  </span>
+                </label>
+              )
+            })
+          )}
+          {errors.scraperSources && (
+            <p className="text-sm text-destructive">{errors.scraperSources.message}</p>
+          )}
         </CardContent>
       </Card>
 
