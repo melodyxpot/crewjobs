@@ -1,12 +1,12 @@
 {
-  "name": "server",
+  "name": "api",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "lint": "pnpm -w exec eslint apps/server --max-warnings 0",
+    "lint": "pnpm -w exec eslint apps/api --max-warnings 0",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

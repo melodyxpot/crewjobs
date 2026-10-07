@@ -4,11 +4,11 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:web": "turbo dev --filter=web",
-    "dev:server": "turbo dev --filter=server",
+    "dev:api": "turbo dev --filter=api",
     "dev:extension": "turbo dev --filter=extension",
     "build": "turbo build",
     "build:web": "turbo build --filter=web",
-    "build:server": "turbo build --filter=server",
+    "build:api": "turbo build --filter=api",
     "build:extension": "turbo build --filter=extension",
     "build:shared": "turbo build --filter=@crewjobs/shared",
     "lint": "eslint . --max-warnings 0",
@@ -20,9 +20,9 @@
     "test:watch": "vitest",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "prepare": "husky",
-    "start": "turbo start --filter=web --filter=server",
+    "start": "turbo start --filter=web --filter=api",
     "start:web": "pnpm --filter web start",
-    "start:server": "pnpm --filter server start"
+    "start:api": "pnpm --filter api start"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,tsx}": [

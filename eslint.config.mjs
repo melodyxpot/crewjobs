@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks"
 import tseslint from "typescript-eslint"
 
 const webFiles = ["apps/web/**/*.{js,jsx,mjs,ts,tsx}"]
-const tsFiles = ["apps/server/**/*.ts", "apps/extension/**/*.ts", "packages/shared/**/*.ts"]
+const tsFiles = ["apps/api/**/*.ts", "apps/extension/**/*.ts", "packages/shared/**/*.ts"]
 
 function withoutGlobalIgnores(configs) {
   return configs.filter((config) => {
