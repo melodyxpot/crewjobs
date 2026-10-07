@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { apiCreateJob, apiDeleteJob, apiGetJobs, apiGetWorkspaces, apiUpdateJob } from "@/lib/api"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import { toast } from "sonner"
 import { ExternalLink, Loader2, Trash2 } from "lucide-react"
 
@@ -33,6 +34,7 @@ export default function JobsPage() {
   const [count, setCount] = useState(0)
   const [workspaces, setWorkspaces] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [workspaceId, setWorkspaceId] = useState("all")
@@ -383,16 +385,7 @@ export default function JobsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={async () => {
-                                  if (!confirm("Delete this job?")) return
-                                  try {
-                                    await apiDeleteJob(job._id)
-                                    toast.success("Job deleted")
-                                    load()
-                                  } catch (error: any) {
-                                    toast.error(error.message)
-                                  }
-                                }}
+                                onClick={() => setDeleteId(job._id)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -432,6 +425,27 @@ export default function JobsPage() {
           )}
         </CardContent>
       </Card>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null)
+        }}
+        title="Delete job?"
+        description="This remote job will be permanently removed."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={async () => {
+          if (!deleteId) return
+          try {
+            await apiDeleteJob(deleteId)
+            toast.success("Job deleted")
+            setDeleteId(null)
+            load()
+          } catch (error: any) {
+            toast.error(error.message)
+          }
+        }}
+      />
     </div>
   )
 }

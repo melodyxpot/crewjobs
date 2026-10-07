@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Card, CardContent } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import {
   ArrowUpDown,
   MoreHorizontal,
@@ -85,6 +86,7 @@ export function ApplicationsTable({
   const [isLoading, setIsLoading] = useState(true)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [searchInput, setSearchInput] = useState(search)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const { user } = useAuth()
   const canFilter =
@@ -179,11 +181,12 @@ export function ApplicationsTable({
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this application?")) return
+  const handleDelete = async () => {
+    if (!deleteId) return
     try {
-      await apiDeleteApplication(id)
+      await apiDeleteApplication(deleteId)
       toast.success("Application deleted")
+      setDeleteId(null)
       fetchApplications()
     } catch (err: any) {
       toast.error(err.message)
@@ -497,7 +500,7 @@ export function ApplicationsTable({
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleDelete(app._id)
+                              setDeleteId(app._id)
                             }}
                             className="text-destructive"
                           >
@@ -541,6 +544,17 @@ export function ApplicationsTable({
           </div>
         )}
       </CardContent>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null)
+        }}
+        title="Delete application?"
+        description="This application will be permanently removed."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleDelete}
+      />
     </Card>
   )
 }

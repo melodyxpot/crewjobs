@@ -97,8 +97,8 @@ function renderLogin() {
           <p>Sign in to your crewjobs account to start tracking job applications.</p>
           <div class="crewjobs-login-form">
             <div class="crewjobs-form-group">
-              <label>Email</label>
-              <input type="email" id="crewjobs-email" placeholder="you@example.com" />
+              <label>Email or username</label>
+              <input type="text" id="crewjobs-email" placeholder="you@example.com or username" autocomplete="username" />
             </div>
             <div class="crewjobs-form-group">
               <label>Password</label>
@@ -151,14 +151,15 @@ function renderLogin() {
   })
 }
 
+function selectedWorkspaceId() {
+  const select = sidebarRoot?.querySelector("#crewjobs-workspace") as HTMLSelectElement | null
+  return select?.value || undefined
+}
+
 async function renderMain(user: any) {
   if (!sidebarRoot) return
 
-  // Pre-fetch profile and extension settings
-  try {
-    const result = await getProfile()
-    cachedProfile = result.profile
-  } catch {}
+  // Profile is loaded after the workspace list is known.
   try {
     extSettings = await getExtensionSettings()
   } catch {}
@@ -190,6 +191,14 @@ async function renderMain(user: any) {
       workspaces = result.workspaces || []
     } catch {}
   }
+  const presetWorkspaceId = workspaces.length === 1 ? workspaces[0]._id : undefined
+  try {
+    const result = await getProfile(presetWorkspaceId)
+    cachedProfile = result.profile
+  } catch {
+    cachedProfile = null
+  }
+
   const workspaceField = workspaces.length
     ? `<div class="crewjobs-form-group">
           <label>Workspace</label>
@@ -369,6 +378,15 @@ async function renderMain(user: any) {
 
   // Bind scan + autofill-all buttons
   bindAutofillEvents()
+  sidebarRoot.querySelector("#crewjobs-workspace")?.addEventListener("change", async () => {
+    try {
+      const result = await getProfile(selectedWorkspaceId())
+      cachedProfile = result.profile
+    } catch {
+      cachedProfile = null
+    }
+    refreshAutofillSection()
+  })
 
   // Generate custom resume
   sidebarRoot.querySelector("#crewjobs-generate-resume")?.addEventListener("click", async () => {
@@ -388,6 +406,7 @@ async function renderMain(user: any) {
         jobTitle: scraped.title,
         company: scraped.company,
         jobDescription,
+        workspaceId: selectedWorkspaceId(),
       })
 
       lastGeneratedResumeUrl = result.url
@@ -428,6 +447,7 @@ async function renderMain(user: any) {
           jobTitle: scraped.title,
           company: scraped.company,
           jobDescription,
+          workspaceId: selectedWorkspaceId(),
         })
 
         resultDiv.innerHTML = `
@@ -714,7 +734,7 @@ function bindAutofillEvents() {
 
       if (field.profileKey === "resumeFile" || field.profileKey === "coverLetterFile") {
         try {
-          const resumeInfo = await getResumeInfo()
+          const resumeInfo = await getResumeInfo(selectedWorkspaceId())
           if (resumeInfo.url) {
             const success = await attachFileToInput(
               field.element as HTMLInputElement,
@@ -867,6 +887,7 @@ function bindAIButtons() {
           jobTitle: scraped.title,
           company: scraped.company,
           jobDescription,
+          workspaceId: selectedWorkspaceId(),
         })
 
         if (answer) {

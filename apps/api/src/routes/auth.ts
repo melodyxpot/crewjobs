@@ -89,12 +89,17 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const email = String(req.body.email || "")
+    const identifier = String(req.body.identifier || req.body.email || "")
       .trim()
       .toLowerCase()
     const password = String(req.body.password || "")
+    if (!identifier || !password) {
+      return res.status(400).json({ error: "Email or username, and password, are required" })
+    }
 
-    const user = await User.findOne({ email })
+    const user = identifier.includes("@")
+      ? await User.findOne({ email: identifier })
+      : await User.findOne({ username: identifier })
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" })
     }

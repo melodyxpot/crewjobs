@@ -98,14 +98,16 @@ export async function getUser() {
   return getStorageData("crewjobs_user")
 }
 
-export async function getProfile() {
-  const res = await authFetch(`${API_BASE}/profile`)
+export async function getProfile(workspaceId?: string) {
+  const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ""
+  const res = await authFetch(`${API_BASE}/profile${query}`)
   if (!res.ok) throw new Error("Failed to fetch profile")
   return res.json()
 }
 
-export async function getResumeInfo() {
-  const res = await authFetch(`${API_BASE}/profile/resume`)
+export async function getResumeInfo(workspaceId?: string) {
+  const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ""
+  const res = await authFetch(`${API_BASE}/profile/resume${query}`)
   if (!res.ok) throw new Error("No resume found")
   return res.json()
 }
@@ -114,6 +116,7 @@ export async function generateResume(data: {
   jobTitle: string
   company: string
   jobDescription: string
+  workspaceId?: string
 }) {
   const res = await authFetch(`${API_BASE}/profile/generate-resume`, {
     method: "POST",
@@ -141,6 +144,7 @@ export async function generateAnswer(data: {
   jobTitle: string
   company: string
   jobDescription: string
+  workspaceId?: string
 }) {
   const res = await authFetch(`${API_BASE}/profile/generate-answer`, {
     method: "POST",
@@ -169,6 +173,7 @@ export async function generateCoverLetter(data: {
   jobTitle: string
   company: string
   jobDescription: string
+  workspaceId?: string
 }) {
   const res = await authFetch(`${API_BASE}/profile/generate-cover-letter`, {
     method: "POST",

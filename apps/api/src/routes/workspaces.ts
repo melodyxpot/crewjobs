@@ -1,6 +1,7 @@
 import { Router } from "express"
 import { authenticate, AuthRequest } from "../middleware/auth"
 import { Workspace } from "../models/Workspace"
+import { Profile } from "../models/Profile"
 import { User } from "../models/User"
 import { isManager } from "../lib/roles"
 import { workspacesForUser } from "../lib/workspace-scope"
@@ -45,6 +46,12 @@ router.post("/", async (req: AuthRequest, res) => {
       createdBy: req.userId,
       bidderIds: [],
       callerIds: [],
+    })
+    const parts = name.split(/\s+/).filter(Boolean)
+    await Profile.create({
+      workspaceId: workspace._id,
+      firstName: parts[0] || "",
+      lastName: parts.slice(1).join(" "),
     })
     const populated = await populateWorkspace(workspace._id)
     res.status(201).json({ workspace: populated })
@@ -144,6 +151,7 @@ router.delete("/:id", async (req: AuthRequest, res) => {
     }
     const workspace = await Workspace.findByIdAndDelete(req.params.id)
     if (!workspace) return res.status(404).json({ error: "Workspace not found" })
+    await Profile.deleteOne({ workspaceId: workspace._id })
     res.json({ success: true })
   } catch {
     res.status(500).json({ error: "Failed to delete workspace" })

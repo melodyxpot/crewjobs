@@ -13,7 +13,7 @@ import { apiLogin } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -26,7 +26,7 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const { user } = await apiLogin(email, password)
+      const { user } = await apiLogin(identifier, password)
       setUser(user)
       router.push("/dashboard")
     } catch (error: unknown) {
@@ -49,21 +49,21 @@ export default function LoginPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">Welcome back</CardTitle>
-              <CardDescription>Enter your email to sign in to your account</CardDescription>
+              <CardDescription>Enter your email or username to sign in</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleLogin}>
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="identifier">Email or username</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
+                      id="identifier"
+                      type="text"
+                      placeholder="you@example.com or username"
                       required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      autoComplete="username"
                     />
                   </div>
                   <div className="grid gap-2">

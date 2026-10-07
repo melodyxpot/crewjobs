@@ -6,19 +6,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { WorkspaceProfile } from "@/components/workspace/workspace-profile"
 import {
   apiCreateWorkspace,
   apiDeleteWorkspace,
   apiGetUsers,
   apiGetWorkspaces,
-  apiUpdateWorkspace,
   apiUpdateWorkspaceMembers,
 } from "@/lib/api"
 import { toast } from "sonner"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import { Loader2, Plus, Trash2, X } from "lucide-react"
 
 type Person = {
-  _id: string
+  _id?: string
   id?: string
   email: string
   username?: string
@@ -41,13 +50,13 @@ export default function WorkspacesPage() {
   const canManage = !!user?.isSuperAdmin || user?.role === "leader" || user?.role === "moderator"
   const [workspaces, setWorkspaces] = useState<any[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [directory, setDirectory] = useState<any[]>([])
+  const [directory, setDirectory] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState("")
-  const [rename, setRename] = useState("")
   const [bidderIds, setBidderIds] = useState<string[]>([])
   const [callerIds, setCallerIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const selected = workspaces.find((workspace) => workspace._id === selectedId) || null
 
@@ -58,7 +67,6 @@ export default function WorkspacesPage() {
 
   useEffect(() => {
     if (!selected) return
-    setRename(selected.name)
     setBidderIds((selected.bidderIds || []).map(personId))
     setCallerIds((selected.callerIds || []).map(personId))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync the form when the selection id changes
@@ -93,10 +101,6 @@ export default function WorkspacesPage() {
   const bidders = directory.filter((person) => person.role === "bidder")
   const callers = directory.filter((person) => person.role === "caller")
 
-  function toggle(list: string[], id: string, setList: (ids: string[]) => void) {
-    setList(list.includes(id) ? list.filter((item) => item !== id) : [...list, id])
-  }
-
   async function createWorkspace() {
     if (!name.trim()) return
     setSaving(true)
@@ -114,18 +118,15 @@ export default function WorkspacesPage() {
     setSaving(false)
   }
 
-  async function saveWorkspace() {
+  async function saveMembers() {
     if (!selected) return
     setSaving(true)
     try {
-      if (rename.trim() && rename.trim() !== selected.name) {
-        await apiUpdateWorkspace(selected._id, rename.trim())
-      }
       const { workspace } = await apiUpdateWorkspaceMembers(selected._id, bidderIds, callerIds)
       setWorkspaces((current) =>
         current.map((item) => (item._id === workspace._id ? workspace : item)),
       )
-      toast.success("Workspace saved")
+      toast.success("Assignments saved")
     } catch (error: any) {
       toast.error(error.message)
     }
@@ -133,12 +134,13 @@ export default function WorkspacesPage() {
   }
 
   async function removeWorkspace() {
-    if (!selected || !confirm(`Delete ${selected.name}?`)) return
+    if (!selected) return
     try {
       await apiDeleteWorkspace(selected._id)
       const next = workspaces.filter((workspace) => workspace._id !== selected._id)
       setWorkspaces(next)
       setSelectedId(next[0]?._id || null)
+      setConfirmDelete(false)
       toast.success("Workspace deleted")
     } catch (error: any) {
       toast.error(error.message)
@@ -158,8 +160,8 @@ export default function WorkspacesPage() {
       <div>
         <h1 className="text-2xl font-bold">Workspaces</h1>
         <p className="text-sm text-muted-foreground">
-          Leaders and moderators group bidders and callers here. A bidder belongs to one workspace.
-          A caller can belong to several. Bid logs and remote jobs are stored on the workspace.
+          Each workspace is a candidate profile. Leaders and moderators edit it and assign bidders
+          and callers. Assigned people can view the profile.
         </p>
       </div>
 
@@ -168,12 +170,13 @@ export default function WorkspacesPage() {
           <CardHeader>
             <CardTitle>New workspace</CardTitle>
             <CardDescription>
-              Create a workspace, then assign the people who work in it.
+              The name you enter becomes the profile name. You can refine it after the resume is
+              parsed.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex gap-2">
             <Input
-              placeholder="Workspace name"
+              placeholder="Profile name, for example Dajour Walker"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -209,111 +212,172 @@ export default function WorkspacesPage() {
           </Card>
 
           {selected && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{selected.name}</CardTitle>
-                <CardDescription>
-                  {(selected.bidderIds || []).length} bidders · {(selected.callerIds || []).length}{" "}
-                  callers
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-6">
-                {canManage ? (
-                  <>
-                    <div className="grid gap-2">
-                      <label className="text-sm font-medium">Name</label>
-                      <Input value={rename} onChange={(e) => setRename(e.target.value)} />
-                    </div>
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div>
-                        <h2 className="mb-2 text-sm font-medium">Bidders</h2>
-                        <div className="flex max-h-72 flex-col gap-2 overflow-auto rounded-md border p-3">
-                          {bidders.length === 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              No approved bidders yet.
-                            </p>
-                          )}
-                          {bidders.map((bidder) => {
-                            const id = bidder.id
+            <div className="flex flex-col gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{selected.name}</CardTitle>
+                  <CardDescription>
+                    {(selected.bidderIds || []).length} bidders ·{" "}
+                    {(selected.callerIds || []).length} callers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-6">
+                  {canManage ? (
+                    <>
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <AssigneeSelect
+                          label="Bidders"
+                          people={bidders}
+                          selected={bidderIds}
+                          onChange={setBidderIds}
+                          blocked={(id) => {
                             const home = bidderHome.get(id)
-                            const blocked = !!home && home !== selected._id
-                            return (
-                              <label key={id} className="flex items-center gap-2 text-sm">
-                                <input
-                                  type="checkbox"
-                                  checked={bidderIds.includes(id)}
-                                  disabled={blocked}
-                                  onChange={() => toggle(bidderIds, id, setBidderIds)}
-                                />
-                                <span>{bidder.username || bidder.name || bidder.email}</span>
-                                {blocked && <Badge variant="outline">In another workspace</Badge>}
-                              </label>
-                            )
-                          })}
-                        </div>
+                            return !!home && home !== selected._id
+                          }}
+                          empty="No approved bidders yet."
+                        />
+                        <AssigneeSelect
+                          label="Callers"
+                          people={callers}
+                          selected={callerIds}
+                          onChange={setCallerIds}
+                          empty="No approved callers yet."
+                        />
                       </div>
-                      <div>
-                        <h2 className="mb-2 text-sm font-medium">Callers</h2>
-                        <div className="flex max-h-72 flex-col gap-2 overflow-auto rounded-md border p-3">
-                          {callers.length === 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              No approved callers yet.
-                            </p>
-                          )}
-                          {callers.map((caller) => (
-                            <label key={caller.id} className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={callerIds.includes(caller.id)}
-                                onChange={() => toggle(callerIds, caller.id, setCallerIds)}
-                              />
-                              <span>{caller.username || caller.name || caller.email}</span>
-                            </label>
-                          ))}
-                        </div>
+                      <div className="flex gap-2">
+                        <Button onClick={saveMembers} disabled={saving}>
+                          {saving ? "Saving..." : "Save assignments"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setConfirmDelete(true)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
                       </div>
+                    </>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <AssignedList title="Bidders" people={selected.bidderIds || []} />
+                      <AssignedList title="Callers" people={selected.callerIds || []} />
                     </div>
-                    <div className="flex gap-2">
-                      <Button onClick={saveWorkspace} disabled={saving}>
-                        {saving ? "Saving..." : "Save workspace"}
-                      </Button>
-                      <Button variant="outline" onClick={removeWorkspace}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <h2 className="mb-2 text-sm font-medium">Bidders</h2>
-                      {(selected.bidderIds || []).map((bidder: Person) => (
-                        <p key={personId(bidder)} className="text-sm">
-                          {personLabel(bidder)}
-                        </p>
-                      ))}
-                      {(selected.bidderIds || []).length === 0 && (
-                        <p className="text-sm text-muted-foreground">None assigned</p>
-                      )}
-                    </div>
-                    <div>
-                      <h2 className="mb-2 text-sm font-medium">Callers</h2>
-                      {(selected.callerIds || []).map((caller: Person) => (
-                        <p key={personId(caller)} className="text-sm">
-                          {personLabel(caller)}
-                        </p>
-                      ))}
-                      {(selected.callerIds || []).length === 0 && (
-                        <p className="text-sm text-muted-foreground">None assigned</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+
+              <WorkspaceProfile
+                key={selected._id}
+                workspaceId={selected._id}
+                canEdit={canManage}
+                onWorkspaceRenamed={(nextName) => {
+                  setWorkspaces((current) =>
+                    current
+                      .map((item) =>
+                        item._id === selected._id ? { ...item, name: nextName } : item,
+                      )
+                      .sort((a, b) => a.name.localeCompare(b.name)),
+                  )
+                }}
+              />
+            </div>
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete workspace?"
+        description={
+          selected
+            ? `Delete ${selected.name}? The profile and assignments for this workspace will be removed.`
+            : "Delete this workspace?"
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={removeWorkspace}
+      />
+    </div>
+  )
+}
+
+function AssignedList({ title, people }: { title: string; people: Person[] }) {
+  return (
+    <div>
+      <h2 className="mb-2 text-sm font-medium">{title}</h2>
+      {people.length === 0 && <p className="text-sm text-muted-foreground">None assigned</p>}
+      {people.map((person) => (
+        <p key={personId(person)} className="text-sm">
+          {personLabel(person)}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+function AssigneeSelect({
+  label,
+  people,
+  selected,
+  onChange,
+  blocked,
+  empty,
+}: {
+  label: string
+  people: Person[]
+  selected: string[]
+  onChange: (ids: string[]) => void
+  blocked?: (id: string) => boolean
+  empty: string
+}) {
+  const available = people.filter((person) => !selected.includes(personId(person)))
+  return (
+    <div className="grid gap-2">
+      <Label>{label}</Label>
+      {people.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{empty}</p>
+      ) : available.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Everyone available is already assigned.</p>
+      ) : (
+        <Select
+          key={selected.join("|")}
+          onValueChange={(id) => {
+            if (blocked?.(id)) return
+            onChange([...selected, id])
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {available.map((person) => {
+              const id = personId(person)
+              const isBlocked = blocked?.(id) || false
+              return (
+                <SelectItem key={id} value={id} disabled={isBlocked}>
+                  {personLabel(person)}
+                  {isBlocked ? " (in another workspace)" : ""}
+                </SelectItem>
+              )
+            })}
+          </SelectContent>
+        </Select>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {selected.map((id) => {
+          const person = people.find((item) => personId(item) === id)
+          return (
+            <Badge key={id} variant="secondary" className="gap-1 pr-1">
+              {person ? personLabel(person) : "Assigned"}
+              <button
+                type="button"
+                className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                onClick={() => onChange(selected.filter((item) => item !== id))}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )
+        })}
+      </div>
     </div>
   )
 }
