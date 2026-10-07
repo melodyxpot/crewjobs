@@ -1,4 +1,5 @@
-import { SCRAPER_SOURCE_IDS, type ScraperSourceId } from "@crewjobs/shared"
+export const SCRAPER_SOURCE_IDS = ["public", "adzuna", "jsearch", "themuse"] as const
+export type ScraperSourceId = (typeof SCRAPER_SOURCE_IDS)[number]
 
 export type ScraperCatalogItem = {
   id: ScraperSourceId

@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { SCRAPER_SOURCE_IDS } from "@crewjobs/shared"
+import { SCRAPER_SOURCE_IDS } from "../lib/job-scraper/catalog"
 import { authenticate, AuthRequest } from "../middleware/auth"
 import { Settings } from "../models/Settings"
 

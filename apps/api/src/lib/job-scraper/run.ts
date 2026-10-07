@@ -1,4 +1,4 @@
-import type { ScraperSourceId } from "@crewjobs/shared"
+import type { ScraperSourceId } from "./catalog"
 import type { ScrapeRegion } from "../../models/ScrapedJob"
 import { evaluateListing } from "./filters"
 import { safeError } from "./http"
