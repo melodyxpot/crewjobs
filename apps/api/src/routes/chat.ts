@@ -5,9 +5,18 @@ import { User } from "../models/User"
 import { Conversation, IConversation } from "../models/Conversation"
 import { Message } from "../models/Message"
 import { canChatWith, displayName, isManager, toPublicUser } from "../lib/roles"
+import { unfurl } from "../lib/unfurl"
 
 const router = Router()
 router.use(authenticate)
+
+function mentionedHandles(body: string) {
+  const handles: string[] = []
+  const pattern = /(?:^|\s)@([a-zA-Z0-9_]+)/g
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(body))) handles.push(match[1].toLowerCase())
+  return [...new Set(handles)]
+}
 
 function pairKey(a: string, b: string) {
   return [a, b].sort()
@@ -85,6 +94,16 @@ async function approvedUsers(ids: string[]) {
   if (users.length !== unique.length) return null
   return users
 }
+
+router.get("/unfurl", async (req: AuthRequest, res) => {
+  try {
+    const preview = await unfurl(String(req.query.url || ""))
+    if (!preview) return res.status(404).json({ error: "No preview for that link" })
+    res.json({ preview })
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Could not preview that link" })
+  }
+})
 
 router.get("/unread", async (req: AuthRequest, res) => {
   try {
@@ -416,6 +435,16 @@ router.post("/channels/:id/messages", async (req: AuthRequest, res) => {
     const loaded = await loadChannel(req, String(req.params.id))
     if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
     const channel = loaded.channel
+    const handles = mentionedHandles(body)
+    if (handles.length) {
+      const members = await User.find({ _id: { $in: channel.participants } }).select("username")
+      const allowed = new Set(
+        members.map((member) => (member.username || "").toLowerCase()).filter(Boolean),
+      )
+      if (handles.some((handle) => !allowed.has(handle))) {
+        return res.status(400).json({ error: "You can only mention people in this channel" })
+      }
+    }
     const message = await Message.create({
       conversationId: channel._id,
       senderId: req.userId,

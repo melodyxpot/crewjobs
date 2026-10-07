@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -32,6 +32,7 @@ import {
   apiSendChatMessage,
   apiUpdateChannel,
 } from "@/lib/api"
+import { LinkPreviews, MessageBody } from "@/components/chat/message-content"
 import { ACTIVE_THREAD_KEY } from "@/components/message-notifications"
 import { ROLE_LABELS, type UserRole } from "@/lib/types"
 import { toast } from "sonner"
@@ -99,8 +100,24 @@ export default function ChatPage() {
   const [channelName, setChannelName] = useState("")
   const [inviteIds, setInviteIds] = useState<string[]>([])
   const [savingChannel, setSavingChannel] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [mentionIndex, setMentionIndex] = useState(0)
   const scroller = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
   const activeRef = useRef<Active | null>(null)
+
+  const mentionChoices = useMemo(() => {
+    if (mentionQuery === null) return []
+    const query = mentionQuery.toLowerCase()
+    return members
+      .filter((member) => member.username)
+      .filter((member) => {
+        const username = member.username!.toLowerCase()
+        const label = personLabel(member).toLowerCase()
+        return username.includes(query) || label.includes(query)
+      })
+      .slice(0, 8)
+  }, [members, mentionQuery])
 
   const activeDirect = active?.kind === "dm" ? directs.find((item) => item.id === active.id) : null
   const activeChannel =
@@ -125,6 +142,10 @@ export default function ChatPage() {
         .catch(() => {})
     }
   }, [canManage])
+
+  useEffect(() => {
+    setMentionQuery(null)
+  }, [active])
 
   useEffect(() => {
     activeRef.current = active
@@ -203,6 +224,7 @@ export default function ChatPage() {
         setMessages((current) => [...current, result.message])
       }
       setDraft("")
+      setMentionQuery(null)
       loadInbox()
     } catch (error: any) {
       toast.error(error.message)
@@ -244,6 +266,37 @@ export default function ChatPage() {
       toast.error(error.message)
     }
     setSavingChannel(false)
+  }
+
+  function openThread(next: Active) {
+    setActive((current) => (sameActive(current, next) ? current : next))
+  }
+
+  function syncMention(value: string, cursor: number) {
+    if (active?.kind !== "channel") {
+      setMentionQuery(null)
+      return
+    }
+    const match = value.slice(0, cursor).match(/(?:^|\s)@([a-zA-Z0-9_]*)$/)
+    const nextQuery = match ? match[1] : null
+    setMentionQuery(nextQuery)
+    setMentionIndex(0)
+  }
+
+  function insertMention(username: string) {
+    const field = composerRef.current
+    const cursor = field?.selectionStart ?? draft.length
+    const match = draft.slice(0, cursor).match(/(?:^|\s)@([a-zA-Z0-9_]*)$/)
+    if (!match || match.index === undefined) return
+    const start = match.index + match[0].length - match[1].length - 1
+    const next = `${draft.slice(0, start)}@${username} ${draft.slice(cursor)}`
+    const place = start + username.length + 2
+    setDraft(next)
+    setMentionQuery(null)
+    requestAnimationFrame(() => {
+      field?.focus()
+      field?.setSelectionRange(place, place)
+    })
   }
 
   function openInvite() {
@@ -305,7 +358,7 @@ export default function ChatPage() {
               title={`# ${channel.name}`}
               preview={channel.lastMessage || "No messages yet"}
               unread={channel.unread}
-              onClick={() => setActive({ kind: "channel", id: channel.id })}
+              onClick={() => openThread({ kind: "channel", id: channel.id })}
             />
           ))}
         </div>
@@ -327,7 +380,7 @@ export default function ChatPage() {
               preview={contact.lastMessage || "No messages yet"}
               unread={contact.unread}
               badge={ROLE_LABELS[contact.role] || contact.role}
-              onClick={() => setActive({ kind: "dm", id: contact.id })}
+              onClick={() => openThread({ kind: "dm", id: contact.id })}
             />
           ))}
         </div>
@@ -351,49 +404,126 @@ export default function ChatPage() {
                 </Button>
               )}
             </div>
-            <div ref={scroller} className="flex-1 space-y-3 overflow-auto p-4">
-              {messages.length === 0 && <p className="text-sm text-muted-foreground">Say hello.</p>}
+            <div ref={scroller} className="flex-1 overflow-auto px-2 py-2">
+              {messages.length === 0 && (
+                <p className="px-2 py-4 text-sm text-muted-foreground">Say hello.</p>
+              )}
               {messages.map((message) => (
-                <div key={message._id} className="flex justify-start">
-                  <div className="max-w-[70%]">
-                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                <div key={message._id} className="rounded-md px-2 py-1.5 hover:bg-muted/50">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm font-semibold">
                       {message.mine ? "You" : message.senderName || "Someone"}
-                    </p>
-                    <div className="rounded-lg bg-muted px-3 py-2 text-sm">
-                      <p className="whitespace-pre-wrap">{message.body}</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {new Date(message.createdAt).toLocaleTimeString([], {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
+                    </span>
+                    <time className="text-xs text-muted-foreground">
+                      {new Date(message.createdAt).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </time>
                   </div>
+                  <MessageBody
+                    body={message.body}
+                    members={activeChannel ? members : []}
+                    currentUsername={user?.username}
+                  />
+                  <LinkPreviews body={message.body} />
                 </div>
               ))}
             </div>
             <form
-              className="flex gap-2 border-t p-3"
+              className="border-t p-3"
               onSubmit={(event) => {
                 event.preventDefault()
                 send()
               }}
             >
-              <Textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder={activeChannel ? `Message #${activeChannel.name}` : `Message ${title}`}
-                rows={2}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault()
-                    send()
+              <div className="relative rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring">
+                {activeChannel && mentionQuery !== null && (
+                  <div className="absolute bottom-full left-3 z-10 mb-1 w-72 overflow-hidden rounded-md border bg-popover shadow-md">
+                    {mentionChoices.length === 0 ? (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                        Only people in this channel can be mentioned.
+                      </p>
+                    ) : (
+                      mentionChoices.map((member, index) => (
+                        <button
+                          key={member.id}
+                          type="button"
+                          className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted ${index === mentionIndex ? "bg-muted" : ""}`}
+                          onMouseDown={(event) => {
+                            event.preventDefault()
+                            if (member.username) insertMention(member.username)
+                          }}
+                        >
+                          <span className="font-medium">@{member.username}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {personLabel(member)}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                <Textarea
+                  ref={composerRef}
+                  value={draft}
+                  onChange={(event) => {
+                    setDraft(event.target.value)
+                    syncMention(
+                      event.target.value,
+                      event.target.selectionStart ?? event.target.value.length,
+                    )
+                  }}
+                  onClick={(event) =>
+                    syncMention(event.currentTarget.value, event.currentTarget.selectionStart ?? 0)
                   }
-                }}
-              />
-              <Button type="submit" disabled={sending || !draft.trim()}>
-                Send
-              </Button>
+                  placeholder={
+                    activeChannel ? `Message #${activeChannel.name}` : `Message ${title}`
+                  }
+                  rows={1}
+                  className="min-h-11 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+                  onKeyDown={(event) => {
+                    if (mentionQuery !== null && mentionChoices.length > 0) {
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault()
+                        setMentionIndex((current) => (current + 1) % mentionChoices.length)
+                        return
+                      }
+                      if (event.key === "ArrowUp") {
+                        event.preventDefault()
+                        setMentionIndex(
+                          (current) =>
+                            (current - 1 + mentionChoices.length) % mentionChoices.length,
+                        )
+                        return
+                      }
+                      if (event.key === "Enter" || event.key === "Tab") {
+                        event.preventDefault()
+                        const choice = mentionChoices[mentionIndex] || mentionChoices[0]
+                        if (choice?.username) insertMention(choice.username)
+                        return
+                      }
+                      if (event.key === "Escape") {
+                        event.preventDefault()
+                        setMentionQuery(null)
+                        return
+                      }
+                    }
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault()
+                      send()
+                    }
+                  }}
+                />
+                <div className="flex items-center justify-between gap-2 px-3 pb-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    Markdown · **bold** · *italic* · `code`
+                  </p>
+                  <Button type="submit" size="sm" disabled={sending || !draft.trim()}>
+                    Send
+                  </Button>
+                </div>
+              </div>
             </form>
           </>
         )}

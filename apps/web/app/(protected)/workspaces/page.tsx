@@ -48,6 +48,7 @@ function personLabel(person: Person) {
 export default function WorkspacesPage() {
   const { user } = useAuth()
   const canManage = !!user?.isSuperAdmin || user?.role === "leader" || user?.role === "moderator"
+  const isAssignee = !canManage && (user?.role === "bidder" || user?.role === "caller")
   const [workspaces, setWorkspaces] = useState<any[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [directory, setDirectory] = useState<Person[]>([])
@@ -158,11 +159,15 @@ export default function WorkspacesPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold">Workspaces</h1>
-        <p className="text-sm text-muted-foreground">
-          Each workspace is a candidate profile. Leaders and moderators edit it and assign bidders
-          and callers. Assigned people can view the profile.
-        </p>
+        <h1 className="text-2xl font-bold">
+          {isAssignee && selected ? selected.name : "Workspaces"}
+        </h1>
+        {!isAssignee && (
+          <p className="text-sm text-muted-foreground">
+            Each workspace is a candidate profile. Leaders and moderators edit it and assign bidders
+            and callers. Assigned people can view the profile.
+          </p>
+        )}
       </div>
 
       {canManage && (
@@ -195,73 +200,91 @@ export default function WorkspacesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-          <Card>
-            <CardContent className="flex flex-col gap-1 p-3">
-              {workspaces.map((workspace) => (
-                <Button
-                  key={workspace._id}
-                  variant={workspace._id === selectedId ? "secondary" : "ghost"}
-                  className="justify-start"
-                  onClick={() => setSelectedId(workspace._id)}
-                >
-                  <span className="truncate">{workspace.name}</span>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
+        <div className={isAssignee ? "flex flex-col gap-6" : "grid gap-6 lg:grid-cols-[240px_1fr]"}>
+          {!isAssignee && (
+            <Card>
+              <CardContent className="flex flex-col gap-1 p-3">
+                {workspaces.map((workspace) => (
+                  <Button
+                    key={workspace._id}
+                    variant={workspace._id === selectedId ? "secondary" : "ghost"}
+                    className="justify-start"
+                    onClick={() => setSelectedId(workspace._id)}
+                  >
+                    <span className="truncate">{workspace.name}</span>
+                  </Button>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {selected && (
             <div className="flex flex-col gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{selected.name}</CardTitle>
-                  <CardDescription>
-                    {(selected.bidderIds || []).length} bidders ·{" "}
-                    {(selected.callerIds || []).length} callers
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-6">
-                  {canManage ? (
-                    <>
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <AssigneeSelect
-                          label="Bidders"
-                          people={bidders}
-                          selected={bidderIds}
-                          onChange={setBidderIds}
-                          blocked={(id) => {
-                            const home = bidderHome.get(id)
-                            return !!home && home !== selected._id
-                          }}
-                          empty="No approved bidders yet."
-                        />
-                        <AssigneeSelect
-                          label="Callers"
-                          people={callers}
-                          selected={callerIds}
-                          onChange={setCallerIds}
-                          empty="No approved callers yet."
-                        />
+              {isAssignee && workspaces.length > 1 && (
+                <Select value={selected._id} onValueChange={setSelectedId}>
+                  <SelectTrigger className="w-full max-w-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workspaces.map((workspace) => (
+                      <SelectItem key={workspace._id} value={workspace._id}>
+                        {workspace.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {!isAssignee && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{selected.name}</CardTitle>
+                    <CardDescription>
+                      {(selected.bidderIds || []).length} bidders ·{" "}
+                      {(selected.callerIds || []).length} callers
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-6">
+                    {canManage ? (
+                      <>
+                        <div className="grid gap-6 md:grid-cols-2">
+                          <AssigneeSelect
+                            label="Bidders"
+                            people={bidders}
+                            selected={bidderIds}
+                            onChange={setBidderIds}
+                            blocked={(id) => {
+                              const home = bidderHome.get(id)
+                              return !!home && home !== selected._id
+                            }}
+                            empty="No approved bidders yet."
+                          />
+                          <AssigneeSelect
+                            label="Callers"
+                            people={callers}
+                            selected={callerIds}
+                            onChange={setCallerIds}
+                            empty="No approved callers yet."
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={saveMembers} disabled={saving}>
+                            {saving ? "Saving..." : "Save assignments"}
+                          </Button>
+                          <Button variant="outline" onClick={() => setConfirmDelete(true)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <AssignedList title="Bidders" people={selected.bidderIds || []} />
+                        <AssignedList title="Callers" people={selected.callerIds || []} />
                       </div>
-                      <div className="flex gap-2">
-                        <Button onClick={saveMembers} disabled={saving}>
-                          {saving ? "Saving..." : "Save assignments"}
-                        </Button>
-                        <Button variant="outline" onClick={() => setConfirmDelete(true)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <AssignedList title="Bidders" people={selected.bidderIds || []} />
-                      <AssignedList title="Callers" people={selected.callerIds || []} />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               <WorkspaceProfile
                 key={selected._id}
