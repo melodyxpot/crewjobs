@@ -31,6 +31,7 @@ export interface Settings {
   workLocationOptions: string[]
   defaultLocation: string
   defaultWorkLocation: string
+  scraperSources?: string[]
 }
 
 export interface DashboardStats {

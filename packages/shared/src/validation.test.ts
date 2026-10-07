@@ -78,6 +78,19 @@ describe("settingsSchema", () => {
     )
   })
 
+  it("accepts a job-source selection and rejects an empty one", () => {
+    expect(settingsSchema.safeParse({ ...validSettings, scraperSources: ["public"] }).success).toBe(
+      true,
+    )
+    expect(
+      settingsSchema.safeParse({ ...validSettings, scraperSources: ["public", "adzuna"] }).success,
+    ).toBe(true)
+    expect(settingsSchema.safeParse({ ...validSettings, scraperSources: [] }).success).toBe(false)
+    expect(
+      settingsSchema.safeParse({ ...validSettings, scraperSources: ["linkedin"] }).success,
+    ).toBe(false)
+  })
+
   it("rejects an empty option list and a follow-up window outside 1-365 days", () => {
     expect(settingsSchema.safeParse({ ...validSettings, platformOptions: [] }).success).toBe(false)
     expect(settingsSchema.safeParse({ ...validSettings, followUpOffsetDays: 0 }).success).toBe(

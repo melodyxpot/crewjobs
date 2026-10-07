@@ -10,6 +10,7 @@ export interface ISettings extends Document {
   workLocationOptions: string[]
   defaultLocation: string
   defaultWorkLocation: string
+  scraperSources: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -28,6 +29,11 @@ const settingsSchema = new Schema<ISettings>(
     workLocationOptions: { type: [String], default: ["Remote", "Hybrid", "Onsite"] },
     defaultLocation: { type: String, default: "US" },
     defaultWorkLocation: { type: String, default: "Remote" },
+    scraperSources: {
+      type: [String],
+      enum: ["public", "adzuna", "jsearch", "themuse"],
+      default: ["public"],
+    },
   },
   { timestamps: true },
 )

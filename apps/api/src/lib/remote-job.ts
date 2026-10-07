@@ -1,5 +1,11 @@
 import mongoose from "mongoose"
-import { ScrapedJob, IScrapedJob } from "../models/ScrapedJob"
+import {
+  ScrapedJob,
+  IScrapedJob,
+  type JobRegion,
+  type ScrapedJobSource,
+} from "../models/ScrapedJob"
+import { normalizeLink } from "./job-scraper/filters"
 
 type Assignee = { id: string; name: string }
 
@@ -17,6 +23,9 @@ export type RemoteListingInput = {
   mode: "bid" | "save"
   assignee?: Assignee | null
   replaceAssignee?: boolean
+  region?: JobRegion | null
+  source?: ScrapedJobSource | null
+  scrapeBatchId?: string | null
 }
 
 function duplicateKey(error: unknown) {
@@ -40,6 +49,8 @@ function applyListing(existing: IScrapedJob, input: RemoteListingInput, link: st
   existing.workLocation = "Remote"
   existing.jobType = input.jobType || existing.jobType
   if (input.notes) existing.notes = input.notes
+  if (input.region) existing.region = input.region
+  if (input.source) existing.source = input.source
   existing.link = link
 
   const nextAssignee =
@@ -63,7 +74,7 @@ function applyListing(existing: IScrapedJob, input: RemoteListingInput, link: st
 export async function saveRemoteListing(
   input: RemoteListingInput,
 ): Promise<{ job: IScrapedJob; created: boolean }> {
-  const link = typeof input.link === "string" && input.link.trim() ? input.link.trim() : null
+  const link = normalizeLink(input.link)
   const workspaceId = input.workspaceId || null
   const identity = listingIdentity(link, workspaceId, input.company, input.title)
 
@@ -96,6 +107,9 @@ export async function saveRemoteListing(
       workLocation: "Remote",
       jobType: input.jobType || null,
       notes: input.notes || null,
+      region: input.region || null,
+      source: input.source || "manual",
+      scrapeBatchId: input.scrapeBatchId || null,
       workspaceId,
       assignedTo: assignee?.id || null,
       assignedName: assignee?.name || null,

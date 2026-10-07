@@ -1,5 +1,8 @@
 import { z } from "zod"
 
+export const SCRAPER_SOURCE_IDS = ["public", "adzuna", "jsearch", "themuse"] as const
+export type ScraperSourceId = (typeof SCRAPER_SOURCE_IDS)[number]
+
 export const jobApplicationSchema = z.object({
   company: z.string().min(1, "Company is required"),
   title: z.string().min(1, "Job title is required"),
@@ -25,6 +28,10 @@ export const settingsSchema = z.object({
   workLocationOptions: z.array(z.string()).min(1, "At least one work location is required"),
   defaultLocation: z.string().optional(),
   defaultWorkLocation: z.string().optional(),
+  scraperSources: z
+    .array(z.enum(SCRAPER_SOURCE_IDS))
+    .min(1, "Choose at least one job source")
+    .optional(),
 })
 
 export type SettingsFormData = z.infer<typeof settingsSchema>

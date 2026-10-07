@@ -352,6 +352,48 @@ export async function apiDeleteJob(id: string) {
   return result
 }
 
+export type ScraperSourceStatus = {
+  id: "public" | "adzuna" | "jsearch" | "themuse"
+  label: string
+  description: string
+  env: string[]
+  ready: boolean
+}
+
+export async function apiGetJobSources() {
+  const res = await authFetch(`${API_BASE}/jobs/sources`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to load job sources")
+  return result as { sources: ScraperSourceStatus[] }
+}
+
+export async function apiScrapeJobs(regions: string[]) {
+  const res = await authFetch(`${API_BASE}/jobs/scrape`, {
+    method: "POST",
+    body: JSON.stringify({ regions }),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to scrape jobs")
+  return result as {
+    created: number
+    duplicates: number
+    rejected: number
+    failedSources: { id: string; label: string; error: string }[]
+    batchId: string
+    createdIds: string[]
+  }
+}
+
+export async function apiAssignJobs(jobIds: string[], workspaceIds: string[]) {
+  const res = await authFetch(`${API_BASE}/jobs/assign`, {
+    method: "POST",
+    body: JSON.stringify({ jobIds, workspaceIds }),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to assign jobs")
+  return result as { created: number; skipped: number; removed: number }
+}
+
 export async function apiGetBidFilters() {
   const res = await authFetch(`${API_BASE}/applications/filters`)
   const result = await res.json()
