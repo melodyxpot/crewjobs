@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "crewjobs - Auto Bid Assistant",
+  "description": "Auto-fill job applications and track your job search",
+  "version": "0.2.0",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["http://localhost:5000/*", "https://*.public.blob.vercel-storage.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "32": "icon-32.png"
+    }
+  },
+  "icons": {
+    "32": "icon-32.png",
+    "128": "icon-128.png"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "crewjobs",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=web",
+    "dev:server": "turbo dev --filter=server",
+    "dev:extension": "turbo dev --filter=extension",
+    "build": "turbo build",
+    "build:web": "turbo build --filter=web",
+    "build:server": "turbo build --filter=server",
+    "build:extension": "turbo build --filter=extension",
+    "build:shared": "turbo build --filter=@crewjobs/shared",
+    "lint": "turbo lint",
+    "start": "turbo start --filter=web --filter=server",
+    "start:web": "pnpm --filter web start",
+    "start:server": "pnpm --filter server start"
+  },
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.10.12",
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
