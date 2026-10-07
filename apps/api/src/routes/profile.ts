@@ -9,9 +9,61 @@ import { put, del } from "@vercel/blob"
 import PDFDocument from "pdfkit"
 import { authenticate, AuthRequest } from "../middleware/auth"
 import { Profile } from "../models/Profile"
+import { Workspace } from "../models/Workspace"
+import { isManager } from "../lib/roles"
+import { resolveWorkspaceId, workspacesForUser } from "../lib/workspace-scope"
 
 const router = Router()
 router.use(authenticate)
+
+function requestedWorkspaceId(req: AuthRequest) {
+  const fromQuery = typeof req.query.workspaceId === "string" ? req.query.workspaceId : ""
+  const fromBody = req.body && typeof req.body.workspaceId === "string" ? req.body.workspaceId : ""
+  return fromQuery || fromBody || ""
+}
+
+async function loadWorkspaceProfile(req: AuthRequest, write = false) {
+  if (write && !isManager(req.user!)) {
+    return {
+      ok: false as const,
+      error: "Only a leader or moderator can edit a workspace profile",
+      status: 403,
+    }
+  }
+
+  const requested = requestedWorkspaceId(req)
+  let workspace = null
+  if (requested) {
+    const resolved = await resolveWorkspaceId(req.user!, requested, { required: true })
+    if (resolved.error || !resolved.workspaceId) {
+      const status = resolved.error === "You cannot use that workspace" ? 403 : 400
+      return { ok: false as const, error: resolved.error || "Workspace not found", status }
+    }
+    workspace = await Workspace.findById(resolved.workspaceId)
+  } else {
+    const list = await workspacesForUser(req.user!)
+    if (list.length === 1) workspace = list[0]
+    else if (list.length === 0) {
+      return { ok: false as const, error: "No workspace is assigned to you", status: 404 }
+    } else {
+      return { ok: false as const, error: "Choose a workspace", status: 400 }
+    }
+  }
+
+  if (!workspace) return { ok: false as const, error: "Workspace not found", status: 404 }
+  let profile = await Profile.findOne({ workspaceId: workspace._id })
+  if (!profile) {
+    const parts = String(workspace.name || "")
+      .split(/\s+/)
+      .filter(Boolean)
+    profile = await Profile.create({
+      workspaceId: workspace._id,
+      firstName: parts[0] || "",
+      lastName: parts.slice(1).join(" "),
+    })
+  }
+  return { ok: true as const, workspace, profile }
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -28,12 +80,9 @@ const upload = multer({
 // GET /api/profile
 router.get("/", async (req: AuthRequest, res) => {
   try {
-    let profile = await Profile.findOne({ userId: req.userId }).lean()
-    if (!profile) {
-      const created = await Profile.create({ userId: req.userId })
-      profile = created.toObject() as any
-    }
-    res.json({ profile })
+    const loaded = await loadWorkspaceProfile(req)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+    res.json({ profile: loaded.profile, workspaceId: loaded.workspace._id })
   } catch (error) {
     res.status(500).json({ error: "Failed to get profile" })
   }
@@ -42,13 +91,26 @@ router.get("/", async (req: AuthRequest, res) => {
 // PUT /api/profile
 router.put("/", async (req: AuthRequest, res) => {
   try {
-    const { resumeUrl: _resumeUrl, resumeFilename: _resumeFilename, ...updateData } = req.body
+    const loaded = await loadWorkspaceProfile(req, true)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+    const {
+      resumeUrl: _resumeUrl,
+      resumeFilename: _resumeFilename,
+      userId: _userId,
+      workspaceId: _workspaceId,
+      ...updateData
+    } = req.body
     const profile = await Profile.findOneAndUpdate(
-      { userId: req.userId },
-      { ...updateData, userId: req.userId },
+      { workspaceId: loaded.workspace._id },
+      { ...updateData, workspaceId: loaded.workspace._id },
       { new: true, upsert: true, runValidators: true },
-    ).lean()
-    res.json({ profile })
+    )
+    const fullName = `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim()
+    if (fullName) {
+      loaded.workspace.name = fullName
+      await loaded.workspace.save()
+    }
+    res.json({ profile, workspaceName: loaded.workspace.name })
   } catch (error) {
     res.status(500).json({ error: "Failed to update profile" })
   }
@@ -60,16 +122,22 @@ router.post("/resume", upload.single("resume"), async (req: AuthRequest, res) =>
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" })
     }
+    const loaded = await loadWorkspaceProfile(req, true)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
 
-    const blob = await put(`resumes/${req.userId}/${req.file.originalname}`, req.file.buffer, {
-      access: "public",
-      contentType: req.file.mimetype,
-    })
+    const blob = await put(
+      `resumes/${loaded.workspace._id}/${req.file.originalname}`,
+      req.file.buffer,
+      {
+        access: "public",
+        contentType: req.file.mimetype,
+      },
+    )
 
     await Profile.findOneAndUpdate(
-      { userId: req.userId },
+      { workspaceId: loaded.workspace._id },
       {
-        userId: req.userId,
+        workspaceId: loaded.workspace._id,
         resumeFilename: req.file.originalname,
         resumeUrl: blob.url,
       },
@@ -88,7 +156,9 @@ router.post("/resume", upload.single("resume"), async (req: AuthRequest, res) =>
 // GET /api/profile/resume - Download resume
 router.get("/resume", async (req: AuthRequest, res) => {
   try {
-    const profile = await Profile.findOne({ userId: req.userId }).select("resumeUrl resumeFilename")
+    const loaded = await loadWorkspaceProfile(req)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+    const profile = loaded.profile
     if (!profile?.resumeUrl) {
       return res.status(404).json({ error: "No resume found" })
     }
@@ -102,16 +172,15 @@ router.get("/resume", async (req: AuthRequest, res) => {
 // DELETE /api/profile/resume - Delete resume
 router.delete("/resume", async (req: AuthRequest, res) => {
   try {
-    const profile = await Profile.findOne({ userId: req.userId }).select("resumeUrl")
+    const loaded = await loadWorkspaceProfile(req, true)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+    const profile = loaded.profile
     if (profile?.resumeUrl) {
       try {
         await del(profile.resumeUrl)
       } catch {}
     }
-    await Profile.findOneAndUpdate(
-      { userId: req.userId },
-      { $unset: { resumeUrl: 1, resumeFilename: 1 } },
-    )
+    await Profile.updateOne({ _id: profile._id }, { $unset: { resumeUrl: 1, resumeFilename: 1 } })
     res.json({ success: true })
   } catch (error) {
     res.status(500).json({ error: "Failed to delete resume" })
@@ -139,16 +208,22 @@ router.post("/parse-resume", upload.single("resume"), async (req: AuthRequest, r
       return res.status(400).json({ error: "Could not extract text from file" })
     }
 
-    // Also save the resume file
-    const blob = await put(`resumes/${req.userId}/${req.file.originalname}`, req.file.buffer, {
-      access: "public",
-      contentType: req.file.mimetype,
-    })
+    const loaded = await loadWorkspaceProfile(req, true)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+
+    const blob = await put(
+      `resumes/${loaded.workspace._id}/${req.file.originalname}`,
+      req.file.buffer,
+      {
+        access: "public",
+        contentType: req.file.mimetype,
+      },
+    )
 
     await Profile.findOneAndUpdate(
-      { userId: req.userId },
+      { workspaceId: loaded.workspace._id },
       {
-        userId: req.userId,
+        workspaceId: loaded.workspace._id,
         resumeFilename: req.file.originalname,
         resumeUrl: blob.url,
       },
@@ -234,10 +309,9 @@ router.post("/generate-resume", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Job description is required" })
     }
 
-    const profile = await Profile.findOne({ userId: req.userId }).select("-generatedResumes")
-    if (!profile) {
-      return res.status(404).json({ error: "Profile not found" })
-    }
+    const loaded = await loadWorkspaceProfile(req)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+    const profile = loaded.profile
 
     const profileData = {
       firstName: profile.firstName,
@@ -488,14 +562,13 @@ CRITICAL RULES — follow these exactly:
       .substring(0, 20)
     const filename = `${safeTitle}_${safeCompany}_${dateStr}.pdf`
 
-    const blob = await put(`generated-resumes/${req.userId}/${filename}`, pdfBuffer, {
+    const blob = await put(`generated-resumes/${loaded.workspace._id}/${filename}`, pdfBuffer, {
       access: "public",
       contentType: "application/pdf",
     })
 
-    // Save reference to profile
     await Profile.findOneAndUpdate(
-      { userId: req.userId },
+      { workspaceId: loaded.workspace._id },
       {
         $push: {
           generatedResumes: {
@@ -577,9 +650,9 @@ router.post("/generate-answer", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Question is required" })
     }
 
-    const profile = await Profile.findOne({ userId: req.userId })
-      .select("-resumeData -generatedResumes")
-      .lean()
+    const loaded = await loadWorkspaceProfile(req)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+    const profile = loaded.profile
 
     const profileSummary = profile
       ? [
@@ -623,12 +696,9 @@ router.post("/generate-cover-letter", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Job description is required" })
     }
 
-    const profile = await Profile.findOne({ userId: req.userId })
-      .select("-resumeData -generatedResumes")
-      .lean()
-    if (!profile) {
-      return res.status(404).json({ error: "Profile not found. Please set up your profile first." })
-    }
+    const loaded = await loadWorkspaceProfile(req)
+    if (!loaded.ok) return res.status(loaded.status).json({ error: loaded.error })
+    const profile = loaded.profile
 
     const profileSummary = [
       `Name: ${profile.firstName || ""} ${profile.lastName || ""}`.trim(),
@@ -697,9 +767,8 @@ router.post("/chat", chatUpload.array("files", 5), async (req: AuthRequest, res)
       return res.status(400).json({ error: "Message or file is required" })
     }
 
-    const profile = await Profile.findOne({ userId: req.userId })
-      .select("-resumeData -generatedResumes")
-      .lean()
+    const loaded = await loadWorkspaceProfile(req)
+    const profile = loaded.ok ? loaded.profile : null
 
     const profileSummary = profile
       ? [

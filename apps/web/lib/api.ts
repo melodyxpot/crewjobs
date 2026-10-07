@@ -155,26 +155,28 @@ export async function apiUpdateSettings(data: any) {
 }
 
 // Profile
-export async function apiGetProfile() {
-  const res = await authFetch(`${API_BASE}/profile`)
-  if (!res.ok) throw new Error("Failed to fetch profile")
-  return res.json()
+export async function apiGetProfile(workspaceId: string) {
+  const res = await authFetch(`${API_BASE}/profile?workspaceId=${encodeURIComponent(workspaceId)}`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to fetch profile")
+  return result
 }
 
-export async function apiUpdateProfile(data: any) {
+export async function apiUpdateProfile(workspaceId: string, data: any) {
   const res = await authFetch(`${API_BASE}/profile`, {
     method: "PUT",
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, workspaceId }),
   })
   const result = await res.json()
   if (!res.ok) throw new Error(result.error || "Failed to update profile")
   return result
 }
 
-export async function apiUploadResume(file: File) {
+export async function apiUploadResume(file: File, workspaceId: string) {
   const token = getToken()
   const formData = new FormData()
   formData.append("resume", file)
+  formData.append("workspaceId", workspaceId)
   const res = await fetch(`${API_BASE}/profile/resume`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -185,10 +187,13 @@ export async function apiUploadResume(file: File) {
   return result
 }
 
-export async function apiDownloadResume() {
-  const res = await authFetch(`${API_BASE}/profile/resume`)
-  if (!res.ok) throw new Error("Failed to get resume")
-  return res.json()
+export async function apiDownloadResume(workspaceId: string) {
+  const res = await authFetch(
+    `${API_BASE}/profile/resume?workspaceId=${encodeURIComponent(workspaceId)}`,
+  )
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to get resume")
+  return result
 }
 
 export async function apiGenerateResume(data: {
@@ -205,17 +210,23 @@ export async function apiGenerateResume(data: {
   return result
 }
 
-export async function apiDeleteResume() {
-  const res = await authFetch(`${API_BASE}/profile/resume`, { method: "DELETE" })
+export async function apiDeleteResume(workspaceId: string) {
+  const res = await authFetch(
+    `${API_BASE}/profile/resume?workspaceId=${encodeURIComponent(workspaceId)}`,
+    {
+      method: "DELETE",
+    },
+  )
   const result = await res.json()
   if (!res.ok) throw new Error(result.error || "Failed to delete resume")
   return result
 }
 
-export async function apiParseResume(file: File) {
+export async function apiParseResume(file: File, workspaceId: string) {
   const token = getToken()
   const formData = new FormData()
   formData.append("resume", file)
+  formData.append("workspaceId", workspaceId)
   const res = await fetch(`${API_BASE}/profile/parse-resume`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -224,95 +235,6 @@ export async function apiParseResume(file: File) {
   const result = await res.json()
   if (!res.ok) throw new Error(result.error || "Failed to parse resume")
   return result
-}
-
-// Teams
-export async function apiGetTeams() {
-  const res = await authFetch(`${API_BASE}/teams`)
-  if (!res.ok) throw new Error("Failed to fetch teams")
-  return res.json()
-}
-
-export async function apiCreateTeam(name: string) {
-  const res = await authFetch(`${API_BASE}/teams`, {
-    method: "POST",
-    body: JSON.stringify({ name }),
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.error || "Failed to create team")
-  return result
-}
-
-export async function apiGetTeam(id: string) {
-  const res = await authFetch(`${API_BASE}/teams/${id}`)
-  if (!res.ok) throw new Error("Failed to fetch team")
-  return res.json()
-}
-
-export async function apiUpdateTeam(id: string, name: string) {
-  const res = await authFetch(`${API_BASE}/teams/${id}`, {
-    method: "PUT",
-    body: JSON.stringify({ name }),
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.error || "Failed to update team")
-  return result
-}
-
-export async function apiDeleteTeam(id: string) {
-  const res = await authFetch(`${API_BASE}/teams/${id}`, { method: "DELETE" })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.error || "Failed to delete team")
-  return result
-}
-
-export async function apiAddTeamMember(teamId: string, email: string, role = "member") {
-  const res = await authFetch(`${API_BASE}/teams/${teamId}/members`, {
-    method: "POST",
-    body: JSON.stringify({ email, role }),
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.error || "Failed to add member")
-  return result
-}
-
-export async function apiChangeTeamRole(teamId: string, userId: string, role: string) {
-  const res = await authFetch(`${API_BASE}/teams/${teamId}/members/${userId}/role`, {
-    method: "PUT",
-    body: JSON.stringify({ role }),
-  })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.error || "Failed to change role")
-  return result
-}
-
-export async function apiRemoveTeamMember(teamId: string, userId: string) {
-  const res = await authFetch(`${API_BASE}/teams/${teamId}/members/${userId}`, { method: "DELETE" })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.error || "Failed to remove member")
-  return result
-}
-
-export async function apiLeaveTeam(teamId: string) {
-  const res = await authFetch(`${API_BASE}/teams/${teamId}/leave`, { method: "POST" })
-  const result = await res.json()
-  if (!res.ok) throw new Error(result.error || "Failed to leave team")
-  return result
-}
-
-export async function apiGetTeamDashboard(teamId: string, days = 14) {
-  const res = await authFetch(
-    `${API_BASE}/teams/${teamId}/dashboard?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`,
-  )
-  if (!res.ok) throw new Error("Failed to fetch team dashboard")
-  return res.json()
-}
-
-export async function apiGetTeamApplications(teamId: string, params: Record<string, string> = {}) {
-  const query = new URLSearchParams(params).toString()
-  const res = await authFetch(`${API_BASE}/teams/${teamId}/applications?${query}`)
-  if (!res.ok) throw new Error("Failed to fetch team applications")
-  return res.json()
 }
 
 export async function apiGetUsers(params: Record<string, string> = {}) {
@@ -444,6 +366,13 @@ export async function apiGetChatInbox() {
   return result
 }
 
+export async function apiGetChatUnread() {
+  const res = await authFetch(`${API_BASE}/chat/unread`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to load notifications")
+  return result
+}
+
 export async function apiGetChatMessages(userId: string) {
   const res = await authFetch(`${API_BASE}/chat/messages/${userId}`)
   const result = await res.json()
@@ -453,6 +382,43 @@ export async function apiGetChatMessages(userId: string) {
 
 export async function apiSendChatMessage(userId: string, body: string) {
   const res = await authFetch(`${API_BASE}/chat/messages/${userId}`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to send message")
+  return result
+}
+
+export async function apiCreateChannel(name: string, memberIds: string[]) {
+  const res = await authFetch(`${API_BASE}/chat/channels`, {
+    method: "POST",
+    body: JSON.stringify({ name, memberIds }),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to create channel")
+  return result
+}
+
+export async function apiUpdateChannel(id: string, data: { name?: string; memberIds?: string[] }) {
+  const res = await authFetch(`${API_BASE}/chat/channels/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to update channel")
+  return result
+}
+
+export async function apiGetChannelMessages(channelId: string) {
+  const res = await authFetch(`${API_BASE}/chat/channels/${channelId}/messages`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to load channel")
+  return result
+}
+
+export async function apiSendChannelMessage(channelId: string, body: string) {
+  const res = await authFetch(`${API_BASE}/chat/channels/${channelId}/messages`, {
     method: "POST",
     body: JSON.stringify({ body }),
   })

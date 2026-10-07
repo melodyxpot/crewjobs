@@ -47,7 +47,8 @@ export interface IEqualEmployment {
 }
 
 export interface IProfile extends Document {
-  userId: mongoose.Types.ObjectId
+  userId?: mongoose.Types.ObjectId
+  workspaceId?: mongoose.Types.ObjectId
   // Personal
   firstName: string
   lastName: string
@@ -145,7 +146,8 @@ const equalEmploymentSchema = new Schema<IEqualEmployment>(
 
 const profileSchema = new Schema<IProfile>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", unique: true, sparse: true },
     firstName: { type: String, default: "" },
     lastName: { type: String, default: "" },
     email: { type: String, default: "" },
