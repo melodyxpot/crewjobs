@@ -417,6 +417,23 @@ export async function apiGetChannelMessages(channelId: string) {
   return result
 }
 
+export type LinkPreview = {
+  url: string
+  title: string
+  description: string
+  image: string
+  siteName: string
+  provider: "google-meet" | "zoom" | "link"
+}
+
+export async function apiUnfurl(url: string): Promise<LinkPreview | null> {
+  const res = await authFetch(`${API_BASE}/chat/unfurl?url=${encodeURIComponent(url)}`)
+  const result = await res.json()
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(result.error || "Failed to load link preview")
+  return result.preview
+}
+
 export async function apiSendChannelMessage(channelId: string, body: string) {
   const res = await authFetch(`${API_BASE}/chat/channels/${channelId}/messages`, {
     method: "POST",
