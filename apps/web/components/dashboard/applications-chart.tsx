@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
+import { Bar, BarChart, Legend, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import type { ChartDataPoint } from "@/lib/types"
 
 interface ApplicationsChartProps {
@@ -18,14 +18,17 @@ export function ApplicationsChart({ data }: ApplicationsChartProps) {
   }))
 
   const totalApplications = data.reduce((sum, point) => sum + point.count, 0)
+  const totalScraped = data.reduce((sum, point) => sum + (point.scraped || 0), 0)
+  const hasScraped = data.some((point) => point.scraped !== undefined)
   const avgPerDay = data.length > 0 ? Math.round(totalApplications / data.length) : 0
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Applications Over Time</CardTitle>
+        <CardTitle>{hasScraped ? "Activity over time" : "Applications over time"}</CardTitle>
         <CardDescription>
-          Last 14 days - Total: {totalApplications} applications, Avg: {avgPerDay}/day
+          Last 14 days — {totalApplications} applications
+          {hasScraped ? `, ${totalScraped} jobs scraped` : ""}, avg {avgPerDay} applications/day
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -57,7 +60,11 @@ export function ApplicationsChart({ data }: ApplicationsChartProps) {
                 labelStyle={{ color: "#fafafa" }}
                 itemStyle={{ color: "#fafafa" }}
               />
+              {hasScraped && <Legend />}
               <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Applications" />
+              {hasScraped && (
+                <Bar dataKey="scraped" fill="#10b981" radius={[4, 4, 0, 0]} name="Scraped jobs" />
+              )}
             </BarChart>
           </ResponsiveContainer>
         </div>

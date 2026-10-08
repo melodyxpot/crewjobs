@@ -97,6 +97,22 @@ router.get("/", async (req: AuthRequest, res) => {
       }
     }
 
+    if (req.query.idsOnly === "1") {
+      if (!isManager(req.user!)) {
+        return res.status(403).json({ error: "Only a leader or moderator can select every job" })
+      }
+      const maxSelect = 10000
+      const [count, rows] = await Promise.all([
+        ScrapedJob.countDocuments(filter),
+        ScrapedJob.find(filter).sort({ createdAt: -1 }).limit(maxSelect).select("_id").lean(),
+      ])
+      return res.json({
+        ids: rows.map((job) => job._id.toString()),
+        count,
+        truncated: count > rows.length,
+      })
+    }
+
     const pageNum = Math.max(parseInt(page) || 1, 1)
     const size = Math.min(parseInt(pageSize) || 20, 100)
     const [data, count] = await Promise.all([
@@ -338,6 +354,7 @@ router.post("/assign", async (req: AuthRequest, res) => {
           region: job.region,
           source: job.source,
           scrapeBatchId: job.scrapeBatchId,
+          scrapedAt: job.scrapedAt || job.createdAt,
         })
         if (saved.created) {
           created += 1
@@ -354,6 +371,31 @@ router.post("/assign", async (req: AuthRequest, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: "Failed to assign jobs" })
+  }
+})
+
+router.post("/bulk-delete", async (req: AuthRequest, res) => {
+  try {
+    if (!isManager(req.user!)) {
+      return res.status(403).json({ error: "Only a leader or moderator can delete jobs" })
+    }
+    const jobIds = [
+      ...new Set(
+        (Array.isArray(req.body?.jobIds) ? req.body.jobIds : []).filter(
+          (id: unknown): id is string => typeof id === "string",
+        ),
+      ),
+    ]
+    if (jobIds.length === 0) return res.status(400).json({ error: "Choose at least one job" })
+    if (jobIds.length > 10000) return res.status(400).json({ error: "Select 10000 jobs or fewer" })
+    if (jobIds.some((id) => !mongoose.isValidObjectId(id))) {
+      return res.status(400).json({ error: "Job not found" })
+    }
+    const result = await ScrapedJob.deleteMany({ _id: { $in: jobIds } })
+    res.json({ deleted: result.deletedCount ?? 0 })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to delete jobs" })
   }
 })
 

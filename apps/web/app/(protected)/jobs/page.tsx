@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,30 +27,41 @@ import {
 import {
   apiAssignJobs,
   apiCreateJob,
-  apiDeleteJob,
+  apiDeleteJobs,
   apiGetJobSources,
   apiGetJobs,
   apiGetSettings,
   apiGetWorkspaces,
   apiScrapeJobs,
-  apiUpdateJob,
   type ScraperSourceStatus,
 } from "@/lib/api"
 import { AssignJobsDialog } from "@/components/jobs/assign-jobs-dialog"
+import { JOB_SOURCE_LABELS, JobDrawer, type JobDetail } from "@/components/jobs/job-drawer"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { toast } from "sonner"
 import { ExternalLink, Loader2, Trash2 } from "lucide-react"
 
 const REGIONS = ["US", "Europe", "Asia"] as const
-const SOURCE_LABELS: Record<string, string> = {
-  remoteok: "Remote OK",
-  remotive: "Remotive",
-  arbeitnow: "Arbeitnow",
-  jobicy: "Jobicy",
-  adzuna: "Adzuna",
-  jsearch: "JSearch",
-  themuse: "The Muse",
-  manual: "Manual",
+const VISITED_LIMIT = 4000
+
+function visitedStorageKey(userId: string) {
+  return `crewjobs.visited-job-links.${userId}`
+}
+
+function readVisitedLinks(userId: string) {
+  try {
+    const raw = localStorage.getItem(visitedStorageKey(userId))
+    const parsed = raw ? JSON.parse(raw) : []
+    return new Set<string>(
+      Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [],
+    )
+  } catch {
+    return new Set<string>()
+  }
+}
+
+function visitToken(job: { _id: string; link?: string | null }) {
+  return job.link || job._id
 }
 
 type ScrapeSummary = {
@@ -87,7 +99,12 @@ export default function JobsPage() {
   const [count, setCount] = useState(0)
   const [workspaces, setWorkspaces] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [openJob, setOpenJob] = useState<JobDetail | null>(null)
+  const [visited, setVisited] = useState<Set<string>>(new Set())
+  const [selectingAll, setSelectingAll] = useState(false)
+  const [allMatchingSelected, setAllMatchingSelected] = useState(false)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [workspaceId, setWorkspaceId] = useState("all")
@@ -114,6 +131,11 @@ export default function JobsPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    if (!user?.id) return
+    setVisited(readVisitedLinks(user.id))
+  }, [user?.id])
+
+  useEffect(() => {
     apiGetWorkspaces()
       .then(({ workspaces: next }) => setWorkspaces(next))
       .catch(() => {})
@@ -135,27 +157,54 @@ export default function JobsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load closes over the filters listed below
   }, [page, workspaceId, status, region, source])
 
-  async function load(overrides: JobFilters = {}) {
+  function queryParams(overrides: JobFilters = {}, extra: Record<string, string> = {}) {
     const nextPage = overrides.page ?? page
     const nextWorkspace = overrides.workspaceId ?? workspaceId
     const nextStatus = overrides.status ?? status
     const nextRegion = overrides.region ?? region
     const nextSource = overrides.source ?? source
+    const params: Record<string, string> = { ...extra }
+    if (nextPage) params.page = String(nextPage)
+    if (!extra.idsOnly) params.pageSize = "20"
+    if (search) params.search = search
+    if (nextWorkspace !== "all") params.workspaceId = nextWorkspace
+    if (nextStatus !== "all") params.status = nextStatus
+    if (nextRegion !== "all") params.region = nextRegion
+    if (nextSource !== "all") params.source = nextSource
+    return params
+  }
+
+  function clearSelection() {
+    setSelected([])
+    setAllMatchingSelected(false)
+  }
+
+  async function load(overrides: JobFilters = {}) {
     setLoading(true)
     try {
-      const params: Record<string, string> = { page: String(nextPage), pageSize: "20" }
-      if (search) params.search = search
-      if (nextWorkspace !== "all") params.workspaceId = nextWorkspace
-      if (nextStatus !== "all") params.status = nextStatus
-      if (nextRegion !== "all") params.region = nextRegion
-      if (nextSource !== "all") params.source = nextSource
-      const result = await apiGetJobs(params)
+      const result = await apiGetJobs(queryParams(overrides))
       setJobs(result.data)
       setCount(result.count)
     } catch (error: any) {
       toast.error(error.message)
     }
     setLoading(false)
+  }
+
+  function markVisited(job: { _id: string; link?: string | null }) {
+    const token = visitToken(job)
+    setVisited((current) => {
+      if (current.has(token)) return current
+      const next = new Set(current)
+      next.add(token)
+      if (user?.id) {
+        const stored = [...next]
+        const trimmed =
+          stored.length > VISITED_LIMIT ? stored.slice(stored.length - VISITED_LIMIT) : stored
+        localStorage.setItem(visitedStorageKey(user.id), JSON.stringify(trimmed))
+      }
+      return next
+    })
   }
 
   async function scrape() {
@@ -175,6 +224,7 @@ export default function JobsPage() {
       setSummary(nextSummary)
       setBatchId(result.batchId)
       setSelected(result.createdIds || [])
+      setAllMatchingSelected(false)
       setWorkspaceId("unassigned")
       setStatus("all")
       setRegion("all")
@@ -220,35 +270,45 @@ export default function JobsPage() {
     setSaving(false)
   }
 
-  async function assign(job: any, assignedTo: string, nextWorkspaceId?: string) {
-    try {
-      await apiUpdateJob(job._id, {
-        assignedTo: assignedTo === "unassigned" ? null : assignedTo,
-        workspaceId: nextWorkspaceId === undefined ? job.workspaceId : nextWorkspaceId || null,
-      })
-      toast.success("Job updated")
-      await load()
-    } catch (error: any) {
-      toast.error(error.message)
-    }
-  }
-
   async function assignSelected(workspaceIds: string[]) {
     try {
-      const result = await apiAssignJobs(selected, workspaceIds)
-      const copies = result.created === 1 ? "job" : "jobs"
+      let created = 0
+      const chunkSize = 200
+      for (let index = 0; index < selected.length; index += chunkSize) {
+        const result = await apiAssignJobs(selected.slice(index, index + chunkSize), workspaceIds)
+        created += result.created
+      }
+      const copies = created === 1 ? "job" : "jobs"
       const rooms = workspaceIds.length === 1 ? "workspace" : "workspaces"
       toast.success(
-        result.created > 0
-          ? `Copied ${result.created} ${copies} into ${workspaceIds.length} ${rooms}`
+        created > 0
+          ? `Copied ${created} ${copies} into ${workspaceIds.length} ${rooms}`
           : "Those jobs are already in the selected workspaces",
       )
-      setSelected([])
+      clearSelection()
       await load()
     } catch (error: any) {
       toast.error(error.message)
       throw error
     }
+  }
+
+  async function selectAllMatching() {
+    setSelectingAll(true)
+    try {
+      const result = await apiGetJobs(queryParams({}, { idsOnly: "1" }))
+      const ids = (result.ids || []) as string[]
+      setSelected(ids)
+      setAllMatchingSelected(ids.length > 0 && !result.truncated)
+      if (result.truncated) {
+        toast(
+          `Selected ${ids.length} of ${result.count} jobs. Narrow the filters to include the rest.`,
+        )
+      }
+    } catch (error: any) {
+      toast.error(error.message)
+    }
+    setSelectingAll(false)
   }
 
   function toggleRegion(value: string) {
@@ -265,6 +325,7 @@ export default function JobsPage() {
   }
 
   function toggleJob(id: string) {
+    setAllMatchingSelected(false)
     setSelected((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     )
@@ -275,11 +336,8 @@ export default function JobsPage() {
   const formWorkspace = workspaces.find((workspace) => workspace._id === form.workspaceId)
   const formBidders = formWorkspace?.bidderIds || []
   const totalPages = Math.max(Math.ceil(count / 20), 1)
-  const visibleIds = jobs.map((job) => job._id as string)
-  const allVisibleSelected =
-    visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id))
-  const someVisibleSelected = visibleIds.some((id) => selected.includes(id))
-  const columnCount = canAssign ? 10 : 8
+  const columnCount = canAssign ? 8 : 7
+  const deleteCount = deleteIds?.length || 0
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -485,6 +543,7 @@ export default function JobsPage() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
+                  clearSelection()
                   setPage(1)
                   load({ page: 1 })
                 }
@@ -494,6 +553,7 @@ export default function JobsPage() {
             <Select
               value={workspaceId}
               onValueChange={(value) => {
+                clearSelection()
                 setWorkspaceId(value)
                 setPage(1)
               }}
@@ -514,6 +574,7 @@ export default function JobsPage() {
             <Select
               value={region}
               onValueChange={(value) => {
+                clearSelection()
                 setRegion(value)
                 setPage(1)
               }}
@@ -532,6 +593,7 @@ export default function JobsPage() {
             <Select
               value={source}
               onValueChange={(value) => {
+                clearSelection()
                 setSource(value)
                 setPage(1)
               }}
@@ -541,7 +603,7 @@ export default function JobsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All sources</SelectItem>
-                {Object.entries(SOURCE_LABELS).map(([id, label]) => (
+                {Object.entries(JOB_SOURCE_LABELS).map(([id, label]) => (
                   <SelectItem key={id} value={id}>
                     {label}
                   </SelectItem>
@@ -551,6 +613,7 @@ export default function JobsPage() {
             <Select
               value={status}
               onValueChange={(value) => {
+                clearSelection()
                 setStatus(value)
                 setPage(1)
               }}
@@ -569,10 +632,18 @@ export default function JobsPage() {
 
           {canAssign && selected.length > 0 && (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3">
-              <p className="text-sm font-medium">{selected.length} selected</p>
+              <p className="text-sm font-medium">
+                {allMatchingSelected
+                  ? `All ${selected.length} jobs selected`
+                  : `${selected.length} selected`}
+              </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSelected([])}>
+                <Button variant="outline" size="sm" onClick={clearSelection}>
                   Clear
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setDeleteIds([...selected])}>
+                  <Trash2 className="h-4 w-4" />
+                  Delete
                 </Button>
                 <Button size="sm" onClick={() => setAssignOpen(true)}>
                   Assign to workspaces
@@ -595,18 +666,21 @@ export default function JobsPage() {
                         <input
                           ref={(node) => {
                             if (node)
-                              node.indeterminate = someVisibleSelected && !allVisibleSelected
+                              node.indeterminate = selected.length > 0 && !allMatchingSelected
                           }}
                           type="checkbox"
                           className="h-4 w-4 accent-primary"
-                          checked={allVisibleSelected}
-                          aria-label="Select all jobs on this page"
+                          checked={allMatchingSelected}
+                          disabled={selectingAll || count === 0}
+                          aria-label="Select all jobs"
+                          onClick={(event) => event.stopPropagation()}
                           onChange={() => {
-                            setSelected((current) =>
-                              allVisibleSelected
-                                ? current.filter((id) => !visibleIds.includes(id))
-                                : [...new Set([...current, ...visibleIds])],
-                            )
+                            if (selectingAll) return
+                            if (allMatchingSelected) {
+                              clearSelection()
+                              return
+                            }
+                            void selectAllMatching()
                           }}
                         />
                       </TableHead>
@@ -616,10 +690,8 @@ export default function JobsPage() {
                     <TableHead>Region</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Workspace</TableHead>
-                    <TableHead>Assigned bidder</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Link</TableHead>
-                    {canAssign && <TableHead />}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -634,13 +706,33 @@ export default function JobsPage() {
                     </TableRow>
                   ) : (
                     jobs.map((job) => {
-                      const workspace = workspaces.find((item) => item._id === job.workspaceId)
-                      const bidders = workspace?.bidderIds || []
                       const fresh = !!batchId && job.scrapeBatchId === batchId
+                      const opened = visited.has(visitToken(job))
                       return (
-                        <TableRow key={job._id} className={fresh ? "bg-primary/5" : undefined}>
+                        <TableRow
+                          key={job._id}
+                          tabIndex={0}
+                          data-visited={opened ? "true" : "false"}
+                          className={cn(
+                            "cursor-pointer",
+                            fresh && "bg-primary/5",
+                            opened &&
+                              "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-950/60",
+                            openJob?._id === job._id && "ring-1 ring-inset ring-primary/40",
+                          )}
+                          onClick={() => setOpenJob(job)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault()
+                              setOpenJob(job)
+                            }
+                          }}
+                        >
                           {canAssign && (
-                            <TableCell>
+                            <TableCell
+                              onClick={(event) => event.stopPropagation()}
+                              onKeyDown={(event) => event.stopPropagation()}
+                            >
                               <input
                                 type="checkbox"
                                 className="h-4 w-4 accent-primary"
@@ -655,77 +747,31 @@ export default function JobsPage() {
                           <TableCell>
                             {job.region ? <Badge variant="outline">{job.region}</Badge> : "—"}
                           </TableCell>
-                          <TableCell>{SOURCE_LABELS[job.source] || "—"}</TableCell>
+                          <TableCell>{JOB_SOURCE_LABELS[job.source] || "—"}</TableCell>
                           <TableCell>
-                            {canAssign ? (
-                              <Select
-                                value={job.workspaceId || "none"}
-                                onValueChange={(value) =>
-                                  assign(
-                                    job,
-                                    job.assignedTo || "unassigned",
-                                    value === "none" ? "" : value,
-                                  )
-                                }
-                              >
-                                <SelectTrigger className="w-[150px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">None</SelectItem>
-                                  {workspaces.map((item) => (
-                                    <SelectItem key={item._id} value={item._id}>
-                                      {item.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              job.workspaceName || "—"
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {canAssign ? (
-                              <Select
-                                value={job.assignedTo || "unassigned"}
-                                onValueChange={(value) => assign(job, value)}
-                              >
-                                <SelectTrigger className="w-[160px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                                  {bidders.map((bidder: any) => (
-                                    <SelectItem key={bidder._id} value={bidder._id}>
-                                      {bidder.username || bidder.name || bidder.email}
-                                    </SelectItem>
-                                  ))}
-                                  {job.assignedTo &&
-                                    !bidders.some(
-                                      (bidder: any) => bidder._id === job.assignedTo,
-                                    ) && (
-                                      <SelectItem value={job.assignedTo}>
-                                        {job.assignedName || "Assigned"}
-                                      </SelectItem>
-                                    )}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              job.assignedName || "—"
-                            )}
+                            {job.workspaceName?.trim() ? job.workspaceName : "Unassigned"}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
                               {job.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => event.stopPropagation()}
+                          >
                             {job.link ? (
                               <a
                                 href={job.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-primary"
+                                aria-label={opened ? `Opened ${job.title}` : `Open ${job.title}`}
+                                className={cn(
+                                  "inline-flex",
+                                  opened ? "text-violet-700 dark:text-violet-300" : "text-primary",
+                                )}
+                                onClick={() => markVisited(job)}
+                                onAuxClick={() => markVisited(job)}
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </a>
@@ -733,17 +779,6 @@ export default function JobsPage() {
                               "—"
                             )}
                           </TableCell>
-                          {canAssign && (
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteId(job._id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          )}
                         </TableRow>
                       )
                     })
@@ -753,27 +788,29 @@ export default function JobsPage() {
             </div>
           )}
 
-          {totalPages > 1 && (
+          {!loading && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{count} jobs</p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((current) => current - 1)}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  Next
-                </Button>
-              </div>
+              {totalPages > 1 && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((current) => current - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((current) => current + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -787,25 +824,53 @@ export default function JobsPage() {
         onConfirm={assignSelected}
       />
       <ConfirmDialog
-        open={!!deleteId}
+        open={deleteCount > 0}
         onOpenChange={(open) => {
-          if (!open) setDeleteId(null)
+          if (!open && !deleting) setDeleteIds(null)
         }}
-        title="Delete job?"
-        description="This remote job will be permanently removed."
-        confirmLabel="Delete"
+        title={deleteCount === 1 ? "Delete job?" : `Delete ${deleteCount} jobs?`}
+        description={
+          deleteCount === 1
+            ? "This remote job will be permanently removed."
+            : `${deleteCount} remote jobs will be permanently removed.`
+        }
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
         destructive
         onConfirm={async () => {
-          if (!deleteId) return
+          if (!deleteIds?.length || deleting) return
+          const ids = deleteIds
+          setDeleting(true)
           try {
-            await apiDeleteJob(deleteId)
-            toast.success("Job deleted")
-            setDeleteId(null)
-            setSelected((current) => current.filter((id) => id !== deleteId))
-            load()
+            const result = await apiDeleteJobs(ids)
+            const removed = new Set(ids)
+            toast.success(result.deleted === 1 ? "Job deleted" : `${result.deleted} jobs deleted`)
+            setSelected((current) => current.filter((id) => !removed.has(id)))
+            setAllMatchingSelected(false)
+            setDeleteIds(null)
+            setOpenJob((current) => (current && removed.has(current._id) ? null : current))
+            const pageEmptied = jobs.length > 0 && jobs.every((job) => removed.has(job._id))
+            const nextPage = removed.size >= count ? 1 : pageEmptied && page > 1 ? page - 1 : page
+            if (nextPage !== page) setPage(nextPage)
+            else await load()
           } catch (error: any) {
             toast.error(error.message)
           }
+          setDeleting(false)
+        }}
+      />
+      <JobDrawer
+        job={openJob}
+        open={!!openJob}
+        visited={!!openJob && visited.has(visitToken(openJob))}
+        canDelete={canAssign}
+        onOpenChange={(open) => {
+          if (!open) setOpenJob(null)
+        }}
+        onVisit={() => {
+          if (openJob) markVisited(openJob)
+        }}
+        onDelete={() => {
+          if (openJob) setDeleteIds([openJob._id])
         }}
       />
     </div>

@@ -34,17 +34,24 @@ export interface Settings {
   scraperSources?: string[]
 }
 
+export type DashboardScope = "own" | "workspace" | "all"
+
 export interface DashboardStats {
+  scope: DashboardScope
   applicationsToday: number
   applicationsThisWeek: number
   applicationsThisMonth: number
   interviewsCount: number
   responseRate: number
+  scrapedToday?: number
+  scrapedThisWeek?: number
+  scrapedThisMonth?: number
 }
 
 export interface ChartDataPoint {
   date: string
   count: number
+  scraped?: number
 }
 
 export type ApplicationStatus =
