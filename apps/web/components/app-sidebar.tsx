@@ -12,6 +12,7 @@ import {
   ClipboardPaste,
   MessagesSquare,
   Building2,
+  CalendarDays,
   Globe,
   UserCheck,
 } from "lucide-react"
@@ -44,6 +45,7 @@ const navItems = [
   { title: "Applications", href: "/applications", icon: FileText },
   { title: "Remote Jobs", href: "/jobs", icon: Globe },
   { title: "Workspaces", href: "/workspaces", icon: Building2 },
+  { title: "Calendar", href: "/calendar", icon: CalendarDays },
   { title: "Messages", href: "/chat", icon: MessagesSquare },
 ]
 

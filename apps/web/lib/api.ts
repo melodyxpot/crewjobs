@@ -269,6 +269,16 @@ export async function apiUpdateUserRole(id: string, role: string) {
   return result
 }
 
+export async function apiAssignUserWorkspaces(id: string, workspaceIds: string[]) {
+  const res = await authFetch(`${API_BASE}/users/${id}/workspaces`, {
+    method: "PUT",
+    body: JSON.stringify({ workspaceIds }),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to update workspace assignments")
+  return result
+}
+
 export async function apiGetWorkspaces() {
   const res = await authFetch(`${API_BASE}/workspaces`)
   const result = await res.json()
@@ -493,6 +503,58 @@ export async function apiSendChannelMessage(channelId: string, body: string) {
   })
   const result = await res.json()
   if (!res.ok) throw new Error(result.error || "Failed to send message")
+  return result
+}
+
+export async function apiGetEvents(from: string, to: string) {
+  const query = new URLSearchParams({ from, to }).toString()
+  const res = await authFetch(`${API_BASE}/events?${query}`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to fetch events")
+  return result
+}
+
+export async function apiCreateEvent(data: {
+  workspaceId: string
+  date: string
+  startTime?: string | null
+  endTime?: string | null
+  client: string
+  details?: string
+}) {
+  const res = await authFetch(`${API_BASE}/events`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to create event")
+  return result
+}
+
+export async function apiUpdateEvent(
+  id: string,
+  data: {
+    workspaceId: string
+    date: string
+    startTime?: string | null
+    endTime?: string | null
+    client: string
+    details?: string
+  },
+) {
+  const res = await authFetch(`${API_BASE}/events/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to update event")
+  return result
+}
+
+export async function apiDeleteEvent(id: string) {
+  const res = await authFetch(`${API_BASE}/events/${id}`, { method: "DELETE" })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to delete event")
   return result
 }
 
