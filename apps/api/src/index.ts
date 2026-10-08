@@ -13,6 +13,7 @@ import { usersRouter } from "./routes/users"
 import { workspacesRouter } from "./routes/workspaces"
 import { jobsRouter } from "./routes/jobs"
 import { chatRouter } from "./routes/chat"
+import { eventsRouter } from "./routes/events"
 import { ensureAccounts } from "./lib/accounts"
 import { Profile } from "./models/Profile"
 
@@ -31,6 +32,7 @@ app.use("/api/users", usersRouter)
 app.use("/api/workspaces", workspacesRouter)
 app.use("/api/jobs", jobsRouter)
 app.use("/api/chat", chatRouter)
+app.use("/api/events", eventsRouter)
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" })

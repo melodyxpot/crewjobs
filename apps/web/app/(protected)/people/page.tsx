@@ -21,16 +21,43 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { apiApproveUser, apiGetUsers, apiRejectUser, apiUpdateUserRole } from "@/lib/api"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  apiApproveUser,
+  apiAssignUserWorkspaces,
+  apiGetUsers,
+  apiGetWorkspaces,
+  apiRejectUser,
+  apiUpdateUserRole,
+} from "@/lib/api"
 import { ROLE_LABELS, USER_ROLES, type UserRole } from "@/lib/types"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
+type WorkspaceRef = { id: string; name: string }
+type DirectoryUser = {
+  id: string
+  email: string
+  username?: string
+  role: string
+  status: string
+  isSuperAdmin?: boolean
+  workspaces?: WorkspaceRef[]
+}
+
 export default function PeoplePage() {
   const { user } = useAuth()
   const canApprove = !!user?.isSuperAdmin || user?.role === "leader"
-  const [pending, setPending] = useState<any[]>([])
-  const [everyone, setEveryone] = useState<any[]>([])
+  const [pending, setPending] = useState<DirectoryUser[]>([])
+  const [everyone, setEveryone] = useState<DirectoryUser[]>([])
+  const [workspaces, setWorkspaces] = useState<{ _id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -41,12 +68,14 @@ export default function PeoplePage() {
   async function load() {
     setLoading(true)
     try {
-      const [pendingResult, allResult] = await Promise.all([
+      const [pendingResult, allResult, workspaceResult] = await Promise.all([
         apiGetUsers({ status: "pending" }),
         apiGetUsers({ status: "all" }),
+        apiGetWorkspaces(),
       ])
       setPending(pendingResult.users)
       setEveryone(allResult.users)
+      setWorkspaces(workspaceResult.workspaces)
     } catch (error: any) {
       toast.error(error.message)
     }
@@ -75,11 +104,22 @@ export default function PeoplePage() {
 
   async function changeRole(id: string, role: string) {
     try {
-      await apiUpdateUserRole(id, role)
-      toast.success("Role updated")
+      const result = await apiUpdateUserRole(id, role)
+      toast.success(result.assignmentNote || "Role updated")
       await load()
     } catch (error: any) {
       toast.error(error.message)
+    }
+  }
+
+  async function assignWorkspaces(id: string, workspaceIds: string[]) {
+    try {
+      await apiAssignUserWorkspaces(id, workspaceIds)
+      toast.success("Workspace assignments saved")
+      await load()
+    } catch (error: any) {
+      toast.error(error.message)
+      throw error
     }
   }
 
@@ -109,8 +149,8 @@ export default function PeoplePage() {
       <div>
         <h1 className="text-2xl font-bold">People</h1>
         <p className="text-sm text-muted-foreground">
-          New accounts stay pending until a leader approves them. The superadmin can change roles,
-          including leader.
+          New accounts stay pending until a leader approves them. A bidder belongs to one workspace.
+          A caller can belong to several. The superadmin can change roles, including leader.
         </p>
       </div>
       <Tabs defaultValue="pending">
@@ -127,6 +167,8 @@ export default function PeoplePage() {
                 onApprove={approve}
                 onReject={reject}
                 onRole={changeRole}
+                workspaces={workspaces}
+                onAssign={assignWorkspaces}
               />
             </CardContent>
           </Card>
@@ -140,6 +182,8 @@ export default function PeoplePage() {
                 onApprove={approve}
                 onReject={reject}
                 onRole={changeRole}
+                workspaces={workspaces}
+                onAssign={assignWorkspaces}
               />
             </CardContent>
           </Card>
@@ -155,12 +199,16 @@ function UserTable({
   onApprove,
   onReject,
   onRole,
+  workspaces,
+  onAssign,
 }: {
-  users: any[]
+  users: DirectoryUser[]
   isSuperAdmin: boolean
   onApprove: (id: string) => void
   onReject: (id: string) => void
   onRole: (id: string, role: string) => void
+  workspaces: { _id: string; name: string }[]
+  onAssign: (id: string, workspaceIds: string[]) => Promise<void>
 }) {
   if (users.length === 0) {
     return <p className="text-sm text-muted-foreground">No accounts in this list.</p>
@@ -174,6 +222,7 @@ function UserTable({
             <TableHead>Username</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Workspaces</TableHead>
             <TableHead>Status</TableHead>
             <TableHead />
           </TableRow>
@@ -209,6 +258,9 @@ function UserTable({
                 )}
               </TableCell>
               <TableCell>
+                <WorkspaceAssignment person={person} workspaces={workspaces} onAssign={onAssign} />
+              </TableCell>
+              <TableCell>
                 <Badge variant="outline" className="capitalize">
                   {person.status}
                 </Badge>
@@ -230,5 +282,147 @@ function UserTable({
         </TableBody>
       </Table>
     </div>
+  )
+}
+
+function WorkspaceAssignment({
+  person,
+  workspaces,
+  onAssign,
+}: {
+  person: DirectoryUser
+  workspaces: { _id: string; name: string }[]
+  onAssign: (id: string, workspaceIds: string[]) => Promise<void>
+}) {
+  const assigned = person.workspaces || []
+  const canAssign =
+    person.status === "approved" && (person.role === "bidder" || person.role === "caller")
+
+  if (!canAssign) {
+    return (
+      <span className="text-sm text-muted-foreground">
+        {assigned.length ? assigned.map((workspace) => workspace.name).join(", ") : "—"}
+      </span>
+    )
+  }
+
+  if (person.role === "bidder") {
+    return (
+      <Select
+        value={assigned[0]?.id || "none"}
+        onValueChange={(value) => {
+          void onAssign(person.id, value === "none" ? [] : [value])
+        }}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="No workspace" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">No workspace</SelectItem>
+          {workspaces.map((workspace) => (
+            <SelectItem key={workspace._id} value={workspace._id}>
+              {workspace.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    )
+  }
+
+  return <CallerWorkspaces person={person} workspaces={workspaces} onAssign={onAssign} />
+}
+
+function CallerWorkspaces({
+  person,
+  workspaces,
+  onAssign,
+}: {
+  person: DirectoryUser
+  workspaces: { _id: string; name: string }[]
+  onAssign: (id: string, workspaceIds: string[]) => Promise<void>
+}) {
+  const assigned = person.workspaces || []
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const label = assigned.length
+    ? assigned.map((workspace) => workspace.name).join(", ")
+    : "Assign workspaces"
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="max-w-[220px]"
+        onClick={() => {
+          setSelected(assigned.map((workspace) => workspace.id))
+          setOpen(true)
+        }}
+      >
+        <span className="truncate">{label}</span>
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Workspaces for {person.username || person.email}</DialogTitle>
+            <DialogDescription>
+              Callers can be assigned to several workspaces. They will see calendar events for each
+              one.
+            </DialogDescription>
+          </DialogHeader>
+          {workspaces.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Create a workspace first.</p>
+          ) : (
+            <div className="grid max-h-64 gap-1 overflow-y-auto">
+              {workspaces.map((workspace) => {
+                const checked = selected.includes(workspace._id)
+                return (
+                  <label
+                    key={workspace._id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={checked}
+                      onChange={() =>
+                        setSelected((current) =>
+                          checked
+                            ? current.filter((id) => id !== workspace._id)
+                            : [...current, workspace._id],
+                        )
+                      }
+                    />
+                    {workspace.name}
+                  </label>
+                )
+              })}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true)
+                try {
+                  await onAssign(person.id, selected)
+                  setOpen(false)
+                } catch {
+                  // The page shows the error toast.
+                } finally {
+                  setSaving(false)
+                }
+              }}
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

@@ -2,6 +2,7 @@ import { Router } from "express"
 import { authenticate, AuthRequest } from "../middleware/auth"
 import { Workspace } from "../models/Workspace"
 import { Profile } from "../models/Profile"
+import { CalendarEvent } from "../models/CalendarEvent"
 import { User } from "../models/User"
 import { isManager } from "../lib/roles"
 import { workspacesForUser } from "../lib/workspace-scope"
@@ -152,6 +153,7 @@ router.delete("/:id", async (req: AuthRequest, res) => {
     const workspace = await Workspace.findByIdAndDelete(req.params.id)
     if (!workspace) return res.status(404).json({ error: "Workspace not found" })
     await Profile.deleteOne({ workspaceId: workspace._id })
+    await CalendarEvent.deleteMany({ workspaceId: workspace._id })
     res.json({ success: true })
   } catch {
     res.status(500).json({ error: "Failed to delete workspace" })

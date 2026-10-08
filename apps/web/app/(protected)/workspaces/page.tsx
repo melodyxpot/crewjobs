@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -24,7 +23,7 @@ import {
   apiUpdateWorkspaceMembers,
 } from "@/lib/api"
 import { toast } from "sonner"
-import { Loader2, Plus, Trash2, X } from "lucide-react"
+import { Loader2, Plus, Trash2 } from "lucide-react"
 
 type Person = {
   _id?: string
@@ -99,6 +98,19 @@ export default function WorkspacesPage() {
     return map
   }, [workspaces])
 
+  const callerHomes = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }[]>()
+    for (const workspace of workspaces) {
+      for (const caller of workspace.callerIds || []) {
+        const id = personId(caller)
+        const list = map.get(id) || []
+        list.push({ id: workspace._id, name: workspace.name })
+        map.set(id, list)
+      }
+    }
+    return map
+  }, [workspaces])
+
   const bidders = directory.filter((person) => person.role === "bidder")
   const callers = directory.filter((person) => person.role === "caller")
 
@@ -164,8 +176,8 @@ export default function WorkspacesPage() {
         </h1>
         {!isAssignee && (
           <p className="text-sm text-muted-foreground">
-            Each workspace is a candidate profile. Leaders and moderators edit it and assign bidders
-            and callers. Assigned people can view the profile.
+            Each workspace is a candidate profile. A bidder belongs to one workspace. A caller can
+            belong to several. Leaders and moderators edit the profile and assignments.
           </p>
         )}
       </div>
@@ -247,22 +259,36 @@ export default function WorkspacesPage() {
                     {canManage ? (
                       <>
                         <div className="grid gap-6 md:grid-cols-2">
-                          <AssigneeSelect
+                          <MemberChecklist
                             label="Bidders"
+                            hint="One workspace each. A bidder already on another workspace stays there until you remove them."
                             people={bidders}
                             selected={bidderIds}
                             onChange={setBidderIds}
-                            blocked={(id) => {
+                            locked={(id) => {
                               const home = bidderHome.get(id)
-                              return !!home && home !== selected._id
+                              if (!home || home === selected._id) return ""
+                              const name =
+                                workspaces.find((workspace) => workspace._id === home)?.name ||
+                                "another workspace"
+                              return `Already in ${name}`
                             }}
                             empty="No approved bidders yet."
                           />
-                          <AssigneeSelect
+                          <MemberChecklist
                             label="Callers"
+                            hint="A caller can be assigned to several workspaces at the same time."
                             people={callers}
                             selected={callerIds}
                             onChange={setCallerIds}
+                            note={(id) => {
+                              const others = (callerHomes.get(id) || []).filter(
+                                (workspace) => workspace.id !== selected._id,
+                              )
+                              return others.length
+                                ? `Also in ${others.map((workspace) => workspace.name).join(", ")}`
+                                : ""
+                            }}
                             empty="No approved callers yet."
                           />
                         </div>
@@ -336,71 +362,68 @@ function AssignedList({ title, people }: { title: string; people: Person[] }) {
   )
 }
 
-function AssigneeSelect({
+function MemberChecklist({
   label,
+  hint,
   people,
   selected,
   onChange,
-  blocked,
+  locked,
+  note,
   empty,
 }: {
   label: string
+  hint: string
   people: Person[]
   selected: string[]
   onChange: (ids: string[]) => void
-  blocked?: (id: string) => boolean
+  locked?: (id: string) => string
+  note?: (id: string) => string
   empty: string
 }) {
-  const available = people.filter((person) => !selected.includes(personId(person)))
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <div>
+        <Label>{label}</Label>
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      </div>
       {people.length === 0 ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
-      ) : available.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Everyone available is already assigned.</p>
       ) : (
-        <Select
-          key={selected.join("|")}
-          onValueChange={(id) => {
-            if (blocked?.(id)) return
-            onChange([...selected, id])
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
-          </SelectTrigger>
-          <SelectContent>
-            {available.map((person) => {
-              const id = personId(person)
-              const isBlocked = blocked?.(id) || false
-              return (
-                <SelectItem key={id} value={id} disabled={isBlocked}>
-                  {personLabel(person)}
-                  {isBlocked ? " (in another workspace)" : ""}
-                </SelectItem>
-              )
-            })}
-          </SelectContent>
-        </Select>
-      )}
-      <div className="flex flex-wrap gap-2">
-        {selected.map((id) => {
-          const person = people.find((item) => personId(item) === id)
-          return (
-            <Badge key={id} variant="secondary" className="gap-1 pr-1">
-              {person ? personLabel(person) : "Assigned"}
-              <button
-                type="button"
-                className="rounded-full p-0.5 hover:bg-muted-foreground/20"
-                onClick={() => onChange(selected.filter((item) => item !== id))}
+        <div className="flex max-h-56 flex-col gap-1 overflow-y-auto rounded-md border p-2">
+          {people.map((person) => {
+            const id = personId(person)
+            const lockReason = locked?.(id) || ""
+            const extra = note?.(id) || ""
+            const checked = selected.includes(id)
+            return (
+              <label
+                key={id}
+                className={`flex items-start gap-2 rounded-md px-2 py-1.5 text-sm ${lockReason ? "opacity-60" : "cursor-pointer hover:bg-accent"}`}
               >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )
-        })}
-      </div>
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                  checked={checked}
+                  disabled={!!lockReason}
+                  onChange={() => {
+                    if (lockReason) return
+                    onChange(checked ? selected.filter((item) => item !== id) : [...selected, id])
+                  }}
+                />
+                <span>
+                  <span className="block">{personLabel(person)}</span>
+                  {(lockReason || extra) && (
+                    <span className="block text-xs text-muted-foreground">
+                      {lockReason || extra}
+                    </span>
+                  )}
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
