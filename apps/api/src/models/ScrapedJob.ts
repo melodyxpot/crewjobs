@@ -32,6 +32,7 @@ export interface IScrapedJob extends Document {
   region: JobRegion | null
   source: ScrapedJobSource
   scrapeBatchId: string | null
+  scrapedAt: Date | null
   assignedTo: mongoose.Types.ObjectId | null
   assignedName: string | null
   status: ScrapedJobStatus
@@ -54,6 +55,7 @@ const scrapedJobSchema = new Schema<IScrapedJob>(
     region: { type: String, enum: [...JOB_REGIONS, null], default: null },
     source: { type: String, enum: SCRAPED_JOB_SOURCES, default: "manual" },
     scrapeBatchId: { type: String, default: null },
+    scrapedAt: { type: Date, default: null },
     assignedTo: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
     assignedName: { type: String, default: null },
     status: { type: String, enum: ["open", "assigned", "applied"], default: "open" },

@@ -352,6 +352,16 @@ export async function apiDeleteJob(id: string) {
   return result
 }
 
+export async function apiDeleteJobs(jobIds: string[]) {
+  const res = await authFetch(`${API_BASE}/jobs/bulk-delete`, {
+    method: "POST",
+    body: JSON.stringify({ jobIds }),
+  })
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to delete jobs")
+  return result as { deleted: number }
+}
+
 export type ScraperSourceStatus = {
   id: "public" | "adzuna" | "jsearch" | "themuse"
   label: string

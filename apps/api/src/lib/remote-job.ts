@@ -26,6 +26,7 @@ export type RemoteListingInput = {
   region?: JobRegion | null
   source?: ScrapedJobSource | null
   scrapeBatchId?: string | null
+  scrapedAt?: Date | null
 }
 
 function duplicateKey(error: unknown) {
@@ -110,6 +111,12 @@ export async function saveRemoteListing(
       region: input.region || null,
       source: input.source || "manual",
       scrapeBatchId: input.scrapeBatchId || null,
+      scrapedAt:
+        input.scrapedAt !== undefined
+          ? input.scrapedAt
+          : input.source && input.source !== "manual"
+            ? new Date()
+            : null,
       workspaceId,
       assignedTo: assignee?.id || null,
       assignedName: assignee?.name || null,
