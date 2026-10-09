@@ -5,6 +5,8 @@ import { User } from "../models/User"
 import { Conversation, IConversation } from "../models/Conversation"
 import { Message } from "../models/Message"
 import { canChatWith, displayName, isManager, toPublicUser } from "../lib/roles"
+import { parseRecordUrl } from "../lib/record-link"
+import { previewRecord } from "../lib/record-preview"
 import { unfurl } from "../lib/unfurl"
 
 const router = Router()
@@ -97,7 +99,9 @@ async function approvedUsers(ids: string[]) {
 
 router.get("/unfurl", async (req: AuthRequest, res) => {
   try {
-    const preview = await unfurl(String(req.query.url || ""))
+    const raw = String(req.query.url || "")
+    const record = parseRecordUrl(raw)
+    const preview = record ? await previewRecord(req, record) : await unfurl(raw)
     if (!preview) return res.status(404).json({ error: "No preview for that link" })
     res.json({ preview })
   } catch (error: any) {

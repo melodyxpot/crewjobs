@@ -72,6 +72,28 @@ router.get("/", async (req: AuthRequest, res) => {
   }
 })
 
+router.get("/:id", async (req: AuthRequest, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ error: "Event not found" })
+    }
+    const event = await CalendarEvent.findById(req.params.id).populate("workspaceId", "name").lean()
+    if (!event) return res.status(404).json({ error: "Event not found" })
+    const allowed = await allowedWorkspaceIds(req)
+    const workspace = event.workspaceId as { _id?: { toString(): string } } | string | null
+    const workspaceId =
+      workspace && typeof workspace === "object"
+        ? workspace._id?.toString()
+        : String(workspace || "")
+    if (!workspaceId || !allowed.has(workspaceId)) {
+      return res.status(404).json({ error: "Event not found" })
+    }
+    res.json({ event: mapEvent(event) })
+  } catch {
+    res.status(500).json({ error: "Failed to fetch event" })
+  }
+})
+
 router.post("/", async (req: AuthRequest, res) => {
   try {
     if (!isManager(req.user!)) {

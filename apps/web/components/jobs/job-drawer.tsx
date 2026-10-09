@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Trash2 } from "lucide-react"
+import { ExternalLink, Loader2, Trash2 } from "lucide-react"
+import { CopyRecordLink } from "@/components/copy-record-link"
 
 export const JOB_SOURCE_LABELS: Record<string, string> = {
   remoteok: "Remote OK",
@@ -82,11 +83,22 @@ export function JobDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md px-6">
-        {job && (
+        {!job ? (
+          <>
+            <SheetHeader className="px-0">
+              <SheetTitle>Job</SheetTitle>
+              <SheetDescription>Loading the job</SheetDescription>
+            </SheetHeader>
+            <div className="flex h-96 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          </>
+        ) : (
           <>
             <SheetHeader className="mb-2 px-0">
               <SheetTitle className="pr-8 text-xl">{job.title || "Job"}</SheetTitle>
               <SheetDescription>{job.company || "Unknown company"}</SheetDescription>
+              <CopyRecordLink kind="job" id={job._id} className="mt-3 w-fit" />
             </SheetHeader>
             <div className="grid gap-4">
               <Detail label="Status">

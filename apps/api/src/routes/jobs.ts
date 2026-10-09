@@ -215,6 +215,34 @@ router.get("/sources", async (req: AuthRequest, res) => {
   })
 })
 
+router.get("/:id", async (req: AuthRequest, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ error: "Job not found" })
+    }
+    const filter = await visibleJobFilter(req)
+    filter._id = req.params.id
+    const job = await ScrapedJob.findOne(filter)
+      .populate("workspaceId", "name")
+      .populate("assignedTo", "username name email")
+      .lean()
+    if (!job) return res.status(404).json({ error: "Job not found" })
+    const row = job as any
+    res.json({
+      data: {
+        ...row,
+        workspaceName: row.workspaceId?.name || "",
+        workspaceId: row.workspaceId?._id || row.workspaceId || null,
+        assignedName: row.assignedName || row.assignedTo?.username || row.assignedTo?.name || "",
+        assignedTo: row.assignedTo?._id || row.assignedTo || null,
+      },
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Failed to fetch job" })
+  }
+})
+
 router.post("/scrape", async (req: AuthRequest, res) => {
   try {
     if (!isManager(req.user!)) {

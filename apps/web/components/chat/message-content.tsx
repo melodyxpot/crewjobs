@@ -1,9 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { apiUnfurl, type LinkPreview } from "@/lib/api"
+import { parseRecordUrl, recordPath } from "@/lib/record-link"
+import { cn } from "@/lib/utils"
 
 type Member = {
   id: string
@@ -144,6 +147,17 @@ export function MessageBody({
             }
             const url = safeHttp(href)
             if (!url) return <span>{children}</span>
+            const record = parseRecordUrl(url)
+            if (record) {
+              return (
+                <Link
+                  href={recordPath(record.kind, record.id)}
+                  className="break-all text-primary underline underline-offset-2"
+                >
+                  {children}
+                </Link>
+              )
+            }
             return (
               <a
                 href={url}
@@ -216,21 +230,24 @@ function previewImage(src: string) {
 }
 
 function LinkPreviewCard({ url }: { url: string }) {
-  const [preview, setPreview] = useState<LinkPreview | null | undefined>(previewCache.get(url))
+  const [preview, setPreview] = useState<LinkPreview | null | undefined>(() =>
+    parseRecordUrl(url) ? undefined : previewCache.get(url),
+  )
 
   useEffect(() => {
-    if (previewCache.has(url)) {
+    const linked = Boolean(parseRecordUrl(url))
+    if (!linked && previewCache.has(url)) {
       setPreview(previewCache.get(url))
       return
     }
     let cancelled = false
     apiUnfurl(url)
       .then((result) => {
-        previewCache.set(url, result)
+        if (!linked) previewCache.set(url, result)
         if (!cancelled) setPreview(result)
       })
       .catch(() => {
-        previewCache.set(url, null)
+        if (!linked) previewCache.set(url, null)
         if (!cancelled) setPreview(null)
       })
     return () => {
@@ -245,6 +262,14 @@ function LinkPreviewCard({ url }: { url: string }) {
         Loading preview…
       </div>
     )
+  }
+
+  if (
+    preview.provider === "application" ||
+    preview.provider === "job" ||
+    preview.provider === "event"
+  ) {
+    return <RecordPreviewCard preview={preview} />
   }
 
   return (
@@ -273,5 +298,70 @@ function LinkPreviewCard({ url }: { url: string }) {
         ) : null}
       </span>
     </a>
+  )
+}
+
+function statusClass(status: string) {
+  switch (status.toLowerCase()) {
+    case "interview":
+      return "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300"
+    case "offer":
+    case "assigned":
+      return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+    case "rejected":
+      return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+    case "open":
+    case "applied":
+      return "border-primary/30 bg-primary/10 text-primary"
+    default:
+      return "border-border bg-muted text-foreground"
+  }
+}
+
+function RecordPreviewCard({ preview }: { preview: LinkPreview }) {
+  const details = (preview.fields || []).filter((field) => field.label !== "Status" && field.value)
+  return (
+    <Link
+      href={preview.path || preview.url}
+      className="block overflow-hidden rounded-lg border bg-background hover:bg-muted/40"
+    >
+      <span className="block border-l-4 border-primary px-3 py-2.5">
+        <span className="flex items-center justify-between gap-2">
+          <span className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+            {preview.siteName}
+          </span>
+          {preview.status ? (
+            <span
+              className={cn(
+                "rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                statusClass(preview.status),
+              )}
+            >
+              {preview.status}
+            </span>
+          ) : null}
+        </span>
+        <span className="mt-1 block text-sm font-semibold">{preview.title}</span>
+        {details.length > 0 ? (
+          <span className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+            {details.map((field) => (
+              <span
+                key={field.label}
+                className={cn(
+                  (field.label === "Notes" || field.label === "Details") && "col-span-2",
+                )}
+              >
+                <span className="block text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                  {field.label}
+                </span>
+                <span className="line-clamp-3 block text-xs whitespace-pre-wrap">
+                  {field.value}
+                </span>
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </span>
+    </Link>
   )
 }
