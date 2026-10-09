@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { recordIdFromPath } from "@/lib/record-link"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +30,7 @@ import {
   apiAssignJobs,
   apiCreateJob,
   apiDeleteJobs,
+  apiGetJob,
   apiGetJobSources,
   apiGetJobs,
   apiGetSettings,
@@ -39,6 +42,7 @@ import { AssignJobsDialog } from "@/components/jobs/assign-jobs-dialog"
 import { JOB_SOURCE_LABELS, JobDrawer, type JobDetail } from "@/components/jobs/job-drawer"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { toast } from "sonner"
+import { CopyRecordLink } from "@/components/copy-record-link"
 import { ExternalLink, Loader2, Trash2 } from "lucide-react"
 
 const REGIONS = ["US", "Europe", "Asia"] as const
@@ -92,6 +96,9 @@ function summaryText(summary: ScrapeSummary) {
 }
 
 export default function JobsPage() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const routeId = recordIdFromPath(pathname, "job")
   const { user } = useAuth()
   const canAssign = !!user?.isSuperAdmin || user?.role === "leader" || user?.role === "moderator"
   const canEditSources = !!user?.isSuperAdmin || user?.role === "leader"
@@ -134,6 +141,34 @@ export default function JobsPage() {
     if (!user?.id) return
     setVisited(readVisitedLinks(user.id))
   }, [user?.id])
+
+  useEffect(() => {
+    if (!routeId) return
+    let cancelled = false
+    apiGetJob(routeId)
+      .then((job) => {
+        if (!cancelled) setOpenJob(job)
+      })
+      .catch((error: Error) => {
+        if (cancelled) return
+        toast.error(error.message)
+        router.replace("/jobs")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [routeId, router])
+
+  function openJobRecord(id: string) {
+    router.push(`/jobs/${id}`)
+  }
+
+  function closeJob() {
+    setOpenJob(null)
+    if (!routeId) return
+    if (window.history.length > 1) router.back()
+    else router.replace("/jobs")
+  }
 
   useEffect(() => {
     apiGetWorkspaces()
@@ -720,11 +755,11 @@ export default function JobsPage() {
                               "bg-violet-50 text-violet-800 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-950/60",
                             openJob?._id === job._id && "ring-1 ring-inset ring-primary/40",
                           )}
-                          onClick={() => setOpenJob(job)}
+                          onClick={() => openJobRecord(job._id)}
                           onKeyDown={(event) => {
                             if (event.key === "Enter") {
                               event.preventDefault()
-                              setOpenJob(job)
+                              openJobRecord(job._id)
                             }
                           }}
                         >
@@ -760,24 +795,36 @@ export default function JobsPage() {
                             onClick={(event) => event.stopPropagation()}
                             onKeyDown={(event) => event.stopPropagation()}
                           >
-                            {job.link ? (
-                              <a
-                                href={job.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label={opened ? `Opened ${job.title}` : `Open ${job.title}`}
-                                className={cn(
-                                  "inline-flex",
-                                  opened ? "text-violet-700 dark:text-violet-300" : "text-primary",
-                                )}
-                                onClick={() => markVisited(job)}
-                                onAuxClick={() => markVisited(job)}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            ) : (
-                              "—"
-                            )}
+                            <span className="inline-flex items-center gap-1">
+                              {job.link ? (
+                                <a
+                                  href={job.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={opened ? `Opened ${job.title}` : `Open ${job.title}`}
+                                  className={cn(
+                                    "inline-flex",
+                                    opened
+                                      ? "text-violet-700 dark:text-violet-300"
+                                      : "text-primary",
+                                  )}
+                                  onClick={() => markVisited(job)}
+                                  onAuxClick={() => markVisited(job)}
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              ) : (
+                                "—"
+                              )}
+                              <CopyRecordLink
+                                kind="job"
+                                id={job._id}
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                label="Copy job link"
+                              />
+                            </span>
                           </TableCell>
                         </TableRow>
                       )
@@ -847,7 +894,7 @@ export default function JobsPage() {
             setSelected((current) => current.filter((id) => !removed.has(id)))
             setAllMatchingSelected(false)
             setDeleteIds(null)
-            setOpenJob((current) => (current && removed.has(current._id) ? null : current))
+            if (openJob && removed.has(openJob._id)) closeJob()
             const pageEmptied = jobs.length > 0 && jobs.every((job) => removed.has(job._id))
             const nextPage = removed.size >= count ? 1 : pageEmptied && page > 1 ? page - 1 : page
             if (nextPage !== page) setPage(nextPage)
@@ -860,11 +907,11 @@ export default function JobsPage() {
       />
       <JobDrawer
         job={openJob}
-        open={!!openJob}
+        open={!!openJob || !!routeId}
         visited={!!openJob && visited.has(visitToken(openJob))}
         canDelete={canAssign}
         onOpenChange={(open) => {
-          if (!open) setOpenJob(null)
+          if (!open) closeJob()
         }}
         onVisit={() => {
           if (openJob) markVisited(openJob)

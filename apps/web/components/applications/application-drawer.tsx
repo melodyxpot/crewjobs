@@ -28,6 +28,7 @@ import {
   apiGetApplication,
   apiGetWorkspaces,
 } from "@/lib/api"
+import { CopyRecordLink } from "@/components/copy-record-link"
 import { jobApplicationSchema, type JobApplicationFormData } from "@/lib/validation"
 import type { Settings } from "@/lib/types"
 import {
@@ -262,6 +263,7 @@ export function ApplicationDrawer({
           <SheetDescription className="text-base">
             {editId ? "Update the details of your job application" : "Track a new job application"}
           </SheetDescription>
+          {editId ? <CopyRecordLink kind="application" id={editId} className="mt-3 w-fit" /> : null}
         </SheetHeader>
 
         {isFetching ? (

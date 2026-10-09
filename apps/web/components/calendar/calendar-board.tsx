@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { recordIdFromPath } from "@/lib/record-link"
 import {
   addDays,
   addMonths,
@@ -21,6 +23,7 @@ import { useAuth } from "@/lib/auth-context"
 import {
   apiCreateEvent,
   apiDeleteEvent,
+  apiGetEvent,
   apiGetEvents,
   apiGetWorkspaces,
   apiUpdateEvent,
@@ -42,6 +45,24 @@ const MONTH_EVENT_LIMIT = 3
 
 function atNoon(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12)
+}
+
+function dayFromKey(value: string) {
+  const [year, month, day] = value.split("-").map(Number)
+  if (!year || !month || !day) return atNoon(new Date())
+  return new Date(year, month - 1, day, 12)
+}
+
+function draftFrom(event: CalendarEvent): EventDraft {
+  return {
+    id: event._id,
+    workspaceId: event.workspaceId,
+    date: event.date,
+    startTime: event.startTime || "",
+    endTime: event.endTime || "",
+    client: event.client,
+    details: event.details || "",
+  }
 }
 
 function dateKey(date: Date) {
@@ -129,6 +150,9 @@ function placeTimed(events: CalendarEvent[]) {
 }
 
 export function CalendarBoard() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const routeId = recordIdFromPath(pathname, "event")
   const { user } = useAuth()
   const canEdit = !!user?.isSuperAdmin || user?.role === "leader" || user?.role === "moderator"
   const [view, setView] = useState<View>("month")
@@ -148,6 +172,26 @@ export function CalendarBoard() {
     const timer = window.setInterval(() => setNow(new Date()), 60_000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (!routeId) return
+    let cancelled = false
+    apiGetEvent(routeId)
+      .then((result) => {
+        if (cancelled) return
+        const event = result.event as CalendarEvent
+        setCursor(dayFromKey(event.date))
+        setDraft(draftFrom(event))
+      })
+      .catch((error: Error) => {
+        if (cancelled) return
+        toast.error(error.message)
+        router.replace("/calendar")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [routeId, router])
 
   useEffect(() => {
     let cancelled = false
@@ -222,16 +266,19 @@ export function CalendarBoard() {
     })
   }
 
+  function closeEvent() {
+    setDraft(null)
+    if (!routeId) return
+    if (window.history.length > 1) router.back()
+    else router.replace("/calendar")
+  }
+
   function openEvent(event: CalendarEvent) {
-    setDraft({
-      id: event._id,
-      workspaceId: event.workspaceId,
-      date: event.date,
-      startTime: event.startTime || "",
-      endTime: event.endTime || "",
-      client: event.client,
-      details: event.details || "",
-    })
+    if (routeId === event._id) {
+      setDraft(draftFrom(event))
+      return
+    }
+    router.push(`/calendar/${event._id}`)
   }
 
   async function reload() {
@@ -254,8 +301,11 @@ export function CalendarBoard() {
       if (next.id) await apiUpdateEvent(next.id, payload)
       else await apiCreateEvent(payload)
       toast.success(next.id ? "Event updated" : "Event added")
-      setDraft(null)
-      await reload()
+      if (routeId) closeEvent()
+      else {
+        setDraft(null)
+        await reload()
+      }
     } catch (error: any) {
       toast.error(error.message)
     }
@@ -267,8 +317,11 @@ export function CalendarBoard() {
     try {
       await apiDeleteEvent(id)
       toast.success("Event deleted")
-      setDraft(null)
-      await reload()
+      if (routeId) closeEvent()
+      else {
+        setDraft(null)
+        await reload()
+      }
     } catch (error: any) {
       toast.error(error.message)
     }
@@ -425,7 +478,7 @@ export function CalendarBoard() {
         workspaces={workspaces}
         saving={saving}
         onOpenChange={(open) => {
-          if (!open) setDraft(null)
+          if (!open) closeEvent()
         }}
         onSave={saveDraft}
         onDelete={deleteEvent}

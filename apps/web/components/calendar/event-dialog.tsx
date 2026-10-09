@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ConfirmDialog } from "@/components/confirm-dialog"
+import { CopyRecordLink } from "@/components/copy-record-link"
 import type { EventDraft, WorkspaceOption } from "@/components/calendar/types"
 
 export function EventDialog({
@@ -183,16 +184,16 @@ function EventForm({
         </div>
       </div>
       <DialogFooter>
-        {canEdit && draft.id && (
-          <Button
-            variant="outline"
-            className="sm:mr-auto"
-            disabled={saving}
-            onClick={() => setConfirmDelete(true)}
-          >
-            Delete
-          </Button>
-        )}
+        {draft.id ? (
+          <div className="flex gap-2 sm:mr-auto">
+            <CopyRecordLink kind="event" id={draft.id} />
+            {canEdit ? (
+              <Button variant="outline" disabled={saving} onClick={() => setConfirmDelete(true)}>
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         <Button variant="outline" onClick={onCancel} disabled={saving}>
           {canEdit ? "Cancel" : "Close"}
         </Button>

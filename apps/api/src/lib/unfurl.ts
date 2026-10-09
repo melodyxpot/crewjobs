@@ -1,7 +1,7 @@
 import { lookup } from "dns/promises"
 import { isIP } from "net"
 
-export type LinkProvider = "google-meet" | "zoom" | "link"
+export type LinkProvider = "google-meet" | "zoom" | "link" | "application" | "job" | "event"
 
 export type LinkPreview = {
   url: string
@@ -10,6 +10,9 @@ export type LinkPreview = {
   image: string
   siteName: string
   provider: LinkProvider
+  path?: string
+  status?: string
+  fields?: { label: string; value: string }[]
 }
 
 const cache = new Map<string, { expires: number; preview: LinkPreview | null }>()

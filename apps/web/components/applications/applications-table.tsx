@@ -32,6 +32,7 @@ import {
   ArrowUpDown,
   MoreHorizontal,
   ExternalLink,
+  Link2,
   Pencil,
   Trash2,
   Search,
@@ -40,6 +41,7 @@ import {
   FileDown,
 } from "lucide-react"
 import { apiGetApplications, apiDeleteApplication, apiGetBidFilters } from "@/lib/api"
+import { copyRecordLink } from "@/lib/record-link"
 import { useAuth } from "@/lib/auth-context"
 import type { JobApplication, Settings } from "@/lib/types"
 import { DEFAULT_STATUSES, DEFAULT_PLATFORMS } from "@/lib/types"
@@ -496,6 +498,20 @@ export function ApplicationsTable({
                           >
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async (e) => {
+                              e.stopPropagation()
+                              try {
+                                await copyRecordLink("application", app._id)
+                                toast.success("Link copied")
+                              } catch {
+                                toast.error("Could not copy the link")
+                              }
+                            }}
+                          >
+                            <Link2 className="mr-2 h-4 w-4" />
+                            Copy link
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={(e) => {

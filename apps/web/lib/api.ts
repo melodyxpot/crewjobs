@@ -327,6 +327,13 @@ export async function apiDeleteWorkspace(id: string) {
   return result
 }
 
+export async function apiGetJob(id: string) {
+  const res = await authFetch(`${API_BASE}/jobs/${id}`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to fetch job")
+  return result.data
+}
+
 export async function apiGetJobs(params: Record<string, string> = {}) {
   const query = new URLSearchParams(params).toString()
   const res = await authFetch(`${API_BASE}/jobs?${query}`)
@@ -485,7 +492,10 @@ export type LinkPreview = {
   description: string
   image: string
   siteName: string
-  provider: "google-meet" | "zoom" | "link"
+  provider: "google-meet" | "zoom" | "link" | "application" | "job" | "event"
+  path?: string
+  status?: string
+  fields?: { label: string; value: string }[]
 }
 
 export async function apiUnfurl(url: string): Promise<LinkPreview | null> {
@@ -503,6 +513,13 @@ export async function apiSendChannelMessage(channelId: string, body: string) {
   })
   const result = await res.json()
   if (!res.ok) throw new Error(result.error || "Failed to send message")
+  return result
+}
+
+export async function apiGetEvent(id: string) {
+  const res = await authFetch(`${API_BASE}/events/${id}`)
+  const result = await res.json()
+  if (!res.ok) throw new Error(result.error || "Failed to fetch event")
   return result
 }
 
